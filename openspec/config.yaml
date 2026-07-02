@@ -1,0 +1,51 @@
+# openspec/config.yaml
+schema: spec-driven
+
+context: |
+  Tech stack: Astro 7 (SSR), TypeScript (strict), bun
+  Architecture: Clean Architecture (src/core, src/infrastructure, src/presentation)
+  Testing: Not configured
+  Style: SCSS Modules (planned), no linter/formatter configured
+  Persistence: Supabase (PostgreSQL), Cloudinary (image storage)
+  Auth: JWT via HTTP-only cookies
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    patterns: Follow existing code patterns
+    tdd: false
+    test_command: ''
+  verify:
+    test_command: ''
+    build_command: 'bun run build'
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas
+
+testing:
+  framework: none
+  strict_tdd: false
+  runner: ''
+  layers:
+    unit:
+      available: false
+    integration:
+      available: false
+    e2e:
+      available: false
+  coverage:
+    available: false
+  quality:
+    linter: ''
+    type_checker: 'tsc --noEmit'
+    formatter: ''
