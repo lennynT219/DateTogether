@@ -1,14 +1,640 @@
 ---
-export const prerender = false;
 import BaseLayout from '../layouts/BaseLayout.astro';
+import TimeCounter from '../components/TimeCounter.astro';
+import ProgressBar from '../components/ProgressBar.astro';
+import DateCard from '../components/DateCard.astro';
+import { SupabaseDateRepository } from '../../infrastructure/repositories/SupabaseDateRepository';
+import { GetDashboardData } from '../../core/use-cases/GetDashboardData';
+
+export const prerender = false;
+
+const togetherSince = import.meta.env.TOGETHER_SINCE || '2024-01-01T00:00:00Z';
+
+const dateRepo = new SupabaseDateRepository();
+const getDashboardData = new GetDashboardData(dateRepo);
+const { dates, progress } = await getDashboardData.execute();
+const hasError = dates.length === 0;
+
+// Book: 4 cards per page, 8 visible on desktop spread (4 left + 4 right)
+const perPage = 4;
+const totalPages = Math.ceil(dates.length / perPage);
 ---
 
-<BaseLayout>
-  <main>
-    <h1>Bienvenido/a a DatesTogether</h1>
-    <p>El reto de las 100 citas</p>
-    <form action="/api/auth/logout" method="POST">
-      <button type="submit">Cerrar sesión</button>
-    </form>
-  </main>
+<BaseLayout title="DatesTogether | Dashboard">
+  <div class="dashboard">
+    <header class="dashboard__header">
+      <div class="dashboard__header-top">
+        <TimeCounter togetherSince={togetherSince} client:load />
+        <div class="dashboard__actions">
+          <div class="dashboard__view-toggle">
+            <button class="view-btn view-btn--active" data-view="grid">Cuadrícula</button>
+            <button class="view-btn" data-view="book">Libro</button>
+          </div>
+          <button class="dashboard__logout" id="logout-btn">Cerrar sesión</button>
+        </div>
+      </div>
+      <ProgressBar completed={progress.completed} total={progress.total} />
+    </header>
+    <main class="dashboard__main">
+      {hasError ? (
+        <p class="dashboard__error">No se pudieron cargar las citas</p>
+      ) : (
+        <>
+          <div class="dates-grid" id="grid-view">
+            {dates.map((date) => <DateCard date={date} />)}
+          </div>
+
+          <div class="book-view" id="book-view" data-total-pages={totalPages} style="display: none;">
+            {/* Book cover wrapper — gives 3D thickness illusion */}
+            <div class="book-cover">
+              <div class="book-cover__spine-left"></div>
+              
+              <div class="book-spread" id="book-spread">
+                {/* Left page */}
+                <div class="book-page book-page--left" id="book-page-left">
+                  <div class="book-page__cards"></div>
+                </div>
+
+                {/* Spiral binding — in the MIDDLE between pages */}
+                <div class="book-spiral" id="book-spiral">
+                  {Array.from({ length: 16 }, () => (
+                    <div class="book-spiral__ring"></div>
+                  ))}
+                </div>
+
+                {/* Right page */}
+                <div class="book-page book-page--right" id="book-page-right">
+                  <div class="book-page__cards"></div>
+                </div>
+              </div>
+
+              <div class="book-cover__spine-right"></div>
+              {/* Book thickness shadow at bottom */}
+              <div class="book-cover__thickness"></div>
+            </div>
+
+            <div class="book-view__nav">
+              <button class="book-view__nav-btn" id="book-prev">← Anterior</button>
+              <span class="book-view__indicator" id="book-indicator">Página 1 de {totalPages}</span>
+              <button class="book-view__nav-btn" id="book-next">Siguiente →</button>
+            </div>
+          </div>
+        </>
+      )}
+    </main>
+  </div>
 </BaseLayout>
+
+<script>
+  // --- View Toggle ---
+  const gridBtn = document.querySelector('[data-view="grid"]');
+  const bookBtn = document.querySelector('[data-view="book"]');
+  const gridView = document.getElementById('grid-view');
+  const bookView = document.getElementById('book-view');
+
+  gridBtn?.addEventListener('click', () => {
+    gridView!.style.display = 'grid';
+    bookView!.style.display = 'none';
+    gridBtn.classList.add('view-btn--active');
+    bookBtn.classList.remove('view-btn--active');
+  });
+
+  bookBtn?.addEventListener('click', () => {
+    gridView!.style.display = 'none';
+    bookView!.style.display = 'block';
+    bookBtn.classList.add('view-btn--active');
+    gridBtn.classList.remove('view-btn--active');
+    renderBookPage(currentPage);
+  });
+
+  // --- Book Pagination with flip animation ---
+  const perPage = 4; // 4 cards per page, 8 visible on desktop spread
+  const totalBookPages = parseInt(bookView?.dataset.totalPages ?? '0', 10);
+  let currentPage = 0;
+  let isAnimating = false;
+
+  // Extract pre-rendered card HTML from the grid (DOM is there even when hidden)
+  const gridCards = gridView?.querySelectorAll('.date-card') ?? [];
+  const cardHTML: string[] = [];
+  gridCards.forEach(card => cardHTML.push(card.outerHTML));
+
+  function renderBookPage(pageIndex: number, direction: 'next' | 'prev' | 'none' = 'none') {
+    if (isAnimating) return;
+    const leftPage = document.getElementById('book-page-left');
+    const rightPage = document.getElementById('book-page-right');
+    const leftCards = leftPage?.querySelector('.book-page__cards');
+    const rightCards = rightPage?.querySelector('.book-page__cards');
+    if (!leftCards || !rightCards) return;
+
+    const isMobile = window.innerWidth <= 768;
+
+    // 4 cards per page. Left page = first 4, right page = next 4 (desktop only)
+    const leftSlice = cardHTML.slice(pageIndex * perPage, pageIndex * perPage + perPage);
+    const rightSlice = isMobile 
+      ? [] 
+      : cardHTML.slice(pageIndex * perPage + perPage, pageIndex * perPage + perPage * 2);
+
+    if (direction !== 'none') {
+      isAnimating = true;
+      const flipPage = direction === 'next' ? rightPage! : leftPage!;
+
+      flipPage.classList.add(direction === 'next' ? 'flipping-next' : 'flipping-prev');
+
+      setTimeout(() => {
+        leftCards.innerHTML = leftSlice.join('');
+        rightCards.innerHTML = rightSlice.join('');
+        flipPage.classList.remove('flipping-next', 'flipping-prev');
+        isAnimating = false;
+      }, 500);
+    } else {
+      leftCards.innerHTML = leftSlice.join('');
+      rightCards.innerHTML = rightSlice.join('');
+    }
+
+    const indicator = document.getElementById('book-indicator');
+    if (indicator) {
+      indicator.textContent = `Página ${pageIndex + 1} de ${totalBookPages}`;
+    }
+
+    // Disable nav buttons at bounds
+    const prevBtn = document.getElementById('book-prev') as HTMLButtonElement | null;
+    const nextBtn = document.getElementById('book-next') as HTMLButtonElement | null;
+    if (prevBtn) prevBtn.disabled = pageIndex === 0;
+    if (nextBtn) nextBtn.disabled = pageIndex >= totalBookPages - 1;
+
+    currentPage = pageIndex;
+  }
+
+  document.getElementById('book-prev')?.addEventListener('click', () => {
+    if (currentPage > 0) renderBookPage(currentPage - 1, 'prev');
+  });
+
+  document.getElementById('book-next')?.addEventListener('click', () => {
+    if (currentPage < totalBookPages - 1) renderBookPage(currentPage + 1, 'next');
+  });
+
+  // Initial render
+  renderBookPage(0);
+
+  // Re-render on resize
+  let resizeTimer: number | undefined;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(() => {
+      if (bookView?.style.display !== 'none') {
+        renderBookPage(currentPage);
+      }
+    }, 200);
+  });
+
+  // --- Logout ---
+  const logoutBtn = document.getElementById('logout-btn');
+  logoutBtn?.addEventListener('click', async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    window.location.href = '/login';
+  });
+</script>
+
+<style>
+  /* ===== Dashboard Base ===== */
+  .dashboard {
+    min-height: 100vh;
+    padding: 1.5rem;
+    background: #2A1B12;
+    background-image:
+      radial-gradient(circle, rgba(196, 168, 130, 0.06) 1.5px, transparent 1.5px),
+      radial-gradient(circle, rgba(196, 168, 130, 0.03) 1px, transparent 1px);
+    background-size: 24px 24px, 12px 12px;
+    background-position: 0 0, 12px 12px;
+    color: #E8DCC8;
+  }
+
+  .dashboard__header {
+    margin-bottom: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .dashboard__header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .dashboard__actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .dashboard__main {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .dashboard__error {
+    text-align: center;
+    color: #C4A882;
+    font-size: 1rem;
+    padding: 3rem;
+  }
+
+  /* ===== View Toggle ===== */
+  .dashboard__view-toggle {
+    display: flex;
+    gap: 0;
+    border: 1.5px solid rgba(232, 220, 200, 0.25);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .view-btn {
+    background: transparent;
+    border: none;
+    color: rgba(232, 220, 200, 0.55);
+    padding: 0.45rem 1.25rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .view-btn:hover {
+    color: #E8DCC8;
+    background: rgba(196, 168, 130, 0.08);
+  }
+
+  .view-btn--active {
+    background: rgba(196, 168, 130, 0.15);
+    color: #E8DCC8;
+  }
+
+  /* ===== Logout ===== */
+  .dashboard__logout {
+    background: transparent;
+    border: 1.5px solid rgba(232, 220, 200, 0.25);
+    color: rgba(232, 220, 200, 0.75);
+    padding: 0.45rem 1.25rem;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, color 0.2s;
+  }
+
+  .dashboard__logout:hover {
+    border-color: #C4A882;
+    background: rgba(196, 168, 130, 0.08);
+    color: #E8DCC8;
+  }
+
+  /* ===== Grid View ===== */
+  .dates-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1.5rem;
+  }
+
+  @media (max-width: 480px) {
+    .dates-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+    }
+  }
+
+  /* ===== Book View — Spiral Album with Cover ===== */
+  .book-view {
+    padding-top: 1rem;
+    perspective: 2500px;
+  }
+
+  /* Book cover wrapper — the "leather" cover visible around the pages */
+  .book-cover {
+    position: relative;
+    max-width: 1100px;
+    margin: 0 auto 1rem;
+    padding: 0;
+    background: #3E2A1E;
+    border-radius: 6px;
+    box-shadow:
+      0 4px 8px rgba(0, 0, 0, 0.3),
+      0 12px 36px rgba(0, 0, 0, 0.5),
+      0 24px 60px rgba(0, 0, 0, 0.3);
+    transform: rotateX(2deg);
+    transform-style: preserve-3d;
+  }
+
+  /* Left spine (book cover edge left) */
+  .book-cover__spine-left {
+    position: absolute;
+    left: -8px;
+    top: 0;
+    bottom: 0;
+    width: 12px;
+    background: linear-gradient(to right, #2A1B12, #3E2A1E);
+    border-radius: 4px 0 0 4px;
+    box-shadow: -2px 0 6px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Right spine (book cover edge right) */
+  .book-cover__spine-right {
+    position: absolute;
+    right: -8px;
+    top: 0;
+    bottom: 0;
+    width: 12px;
+    background: linear-gradient(to left, #2A1B12, #3E2A1E);
+    border-radius: 0 4px 4px 0;
+    box-shadow: 2px 0 6px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Book thickness — the pages stacked, visible at the bottom */
+  .book-cover__thickness {
+    position: absolute;
+    left: 4px;
+    right: 4px;
+    bottom: -8px;
+    height: 10px;
+    background: repeating-linear-gradient(
+      to right,
+      #E8DCC8 0px,
+      #E8DCC8 2px,
+      #D4C5B2 2px,
+      #D4C5B2 4px
+    );
+    border-radius: 0 0 4px 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    z-index: -1;
+  }
+
+  /* The spread: two pages + spiral in middle */
+  .book-spread {
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    position: relative;
+    gap: 0;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  /* ===== Spiral Binding — in the MIDDLE ===== */
+  .book-spiral {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    align-items: center;
+    width: 28px;
+    z-index: 10;
+    position: relative;
+    padding: 2rem 0;
+    flex-shrink: 0;
+  }
+
+  .book-spiral__ring {
+    width: 20px;
+    height: 20px;
+    border: 3px solid #9A8A78;
+    border-radius: 50%;
+    background: transparent;
+    box-shadow:
+      inset 0 1px 3px rgba(255, 255, 255, 0.25),
+      inset 0 -1px 2px rgba(0, 0, 0, 0.3),
+      0 1px 4px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Metallic alternation */
+  .book-spiral__ring:nth-child(odd) {
+    border-color: #B0A090;
+  }
+  .book-spiral__ring:nth-child(even) {
+    border-color: #807060;
+  }
+
+  /* ===== Book Pages ===== */
+  .book-page {
+    flex: 1;
+    background: #F5F0E6;
+    padding: 1.75rem 2rem;
+    min-height: 520px;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.5s ease-in-out;
+    color: #3E2A1E;
+  }
+
+  .book-page--left {
+    border-radius: 4px 0 0 4px;
+    box-shadow:
+      inset -6px 0 16px rgba(0, 0, 0, 0.1),
+      0 0 0 1px rgba(0, 0, 0, 0.05);
+  }
+
+  .book-page--right {
+    border-radius: 0 4px 4px 0;
+    box-shadow:
+      inset 6px 0 16px rgba(0, 0, 0, 0.1),
+      0 0 0 1px rgba(0, 0, 0, 0.05);
+  }
+
+  /* Inner shadow near the spiral (depth toward binding) */
+  .book-page--left::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 24px;
+    background: linear-gradient(to left, rgba(0, 0, 0, 0.15), transparent);
+    pointer-events: none;
+  }
+
+  .book-page--right::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 24px;
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.15), transparent);
+    pointer-events: none;
+  }
+
+  /* ===== Cards inside book pages — 2x2 grid with slight rotations ===== */
+  .book-page__cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+    height: 100%;
+    align-content: center;
+  }
+
+  /* Tilted cards — simulate photos pasted in an album at angles */
+  .book-page__cards :global(.date-card) {
+    aspect-ratio: 3 / 4;
+    transition: transform 0.3s ease;
+  }
+
+  /* Alternate rotations for album feel */
+  .book-page__cards :global(.date-card:nth-child(1)) {
+    transform: rotate(-2.5deg);
+  }
+  .book-page__cards :global(.date-card:nth-child(2)) {
+    transform: rotate(1.8deg);
+  }
+  .book-page__cards :global(.date-card:nth-child(3)) {
+    transform: rotate(-1.2deg);
+  }
+  .book-page__cards :global(.date-card:nth-child(4)) {
+    transform: rotate(2.2deg);
+  }
+
+  /* Straighten on hover */
+  .book-page__cards :global(.date-card:hover) {
+    transform: rotate(0deg) scale(1.05);
+    z-index: 5;
+  }
+
+  /* ===== Flip Animation ===== */
+  .book-page.flipping-next {
+    animation: flip-next 0.5s ease-in-out;
+    transform-origin: left center;
+  }
+
+  .book-page.flipping-prev {
+    animation: flip-prev 0.5s ease-in-out;
+    transform-origin: right center;
+  }
+
+  @keyframes flip-next {
+    0% { transform: rotateY(0deg); z-index: 5; }
+    50% { transform: rotateY(-90deg); z-index: 5; box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6); }
+    100% { transform: rotateY(0deg); z-index: 5; }
+  }
+
+  @keyframes flip-prev {
+    0% { transform: rotateY(0deg); z-index: 5; }
+    50% { transform: rotateY(90deg); z-index: 5; box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6); }
+    100% { transform: rotateY(0deg); z-index: 5; }
+  }
+
+  /* ===== Book Navigation ===== */
+  .book-view__nav {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 2rem;
+    padding: 1rem 0 2rem;
+  }
+
+  .book-view__nav-btn {
+    background: rgba(196, 168, 130, 0.1);
+    border: 1px solid rgba(196, 168, 130, 0.25);
+    color: #C4A882;
+    padding: 0.55rem 1.5rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+  }
+
+  .book-view__nav-btn:hover:not(:disabled) {
+    background: rgba(196, 168, 130, 0.2);
+    border-color: #C4A882;
+    color: #E8DCC8;
+  }
+
+  .book-view__nav-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  .book-view__indicator {
+    color: #C4A882;
+    font-size: 0.9rem;
+    font-weight: 500;
+    min-width: 120px;
+    text-align: center;
+  }
+
+  /* ===== Mobile: single page, spiral on LEFT ===== */
+  @media (max-width: 768px) {
+    .book-page--right {
+      display: none;
+    }
+
+    /* Spiral moves to the left */
+    .book-spiral {
+      order: -1;
+    }
+
+    .book-page--left {
+      border-radius: 0 4px 4px 0;
+      box-shadow:
+        inset 6px 0 16px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(0, 0, 0, 0.05);
+    }
+
+    .book-page--left::after {
+      left: 0;
+      right: auto;
+      background: linear-gradient(to right, rgba(0, 0, 0, 0.15), transparent);
+    }
+
+    .book-page {
+      padding: 1.5rem 1.5rem 1.5rem 2.25rem;
+      min-height: 400px;
+    }
+
+    .book-page__cards {
+      gap: 1rem;
+    }
+
+    .book-view__nav {
+      gap: 1rem;
+    }
+
+    .book-view__nav-btn {
+      padding: 0.45rem 1rem;
+      font-size: 0.8rem;
+    }
+
+    .book-view__indicator {
+      font-size: 0.8rem;
+      min-width: auto;
+    }
+
+    /* On mobile, only 2 cards per page (not 4) since less space */
+    .book-page__cards {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .dashboard {
+      padding: 1rem;
+    }
+
+    .dashboard__header-top {
+      gap: 0.75rem;
+    }
+
+    .dashboard__actions {
+      gap: 0.75rem;
+    }
+
+    .book-page {
+      padding: 1rem 1rem 1rem 1.75rem;
+      min-height: 340px;
+    }
+
+    .book-page__cards {
+      gap: 0.75rem;
+    }
+  }
+</style>
