@@ -1,5 +1,19 @@
 @use 'variables' as *;
 
+:root {
+  --color-primary: #{$color-primary};
+  --color-primary-dark: #{$color-primary-dark};
+  --color-accent: #{$color-accent};
+  --color-accent-light: #{$color-accent-light};
+  --color-background: #{$color-background};
+  --color-surface: #{$color-surface};
+  --color-text: #{$color-text};
+  --color-text-muted: #{$color-text-muted};
+  --color-border: #{$color-border};
+  --color-error: #{$color-error};
+  --color-error-bg: #{$color-error-bg};
+}
+
 *,
 *::before,
 *::after {

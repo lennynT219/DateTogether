@@ -5,7 +5,11 @@ export interface DateEntry {
   title: string;
   description?: string;
   category: 'predefined' | 'free';
+  orderIndex: number;
   completed: boolean;
   completedAt?: Date;
+  completedBy?: string;
   memories: Memory[];
+  createdAt: Date;
+  updatedAt: Date;
 }

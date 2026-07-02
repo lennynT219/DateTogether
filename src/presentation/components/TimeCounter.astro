@@ -1,0 +1,117 @@
+---
+export interface Props {
+  togetherSince: string;
+}
+
+const { togetherSince } = Astro.props;
+---
+
+<div id="time-counter" class="time-counter" data-since={togetherSince}>
+  <div class="time-unit">
+    <span class="time-value" id="time-years">0</span>
+    <span class="time-label">A</span>
+  </div>
+  <div class="time-unit">
+    <span class="time-value" id="time-months">0</span>
+    <span class="time-label">M</span>
+  </div>
+  <div class="time-unit">
+    <span class="time-value" id="time-days">0</span>
+    <span class="time-label">D</span>
+  </div>
+  <div class="time-unit">
+    <span class="time-value" id="time-hours">0</span>
+    <span class="time-label">H</span>
+  </div>
+  <div class="time-unit">
+    <span class="time-value" id="time-minutes">0</span>
+    <span class="time-label">M</span>
+  </div>
+  <div class="time-unit">
+    <span class="time-value" id="time-seconds">0</span>
+    <span class="time-label">S</span>
+  </div>
+</div>
+
+<script>
+  function getTimeTogether(since: string) {
+    const now = new Date();
+    const start = new Date(since);
+
+    let years = now.getUTCFullYear() - start.getUTCFullYear();
+    let months = now.getUTCMonth() - start.getUTCMonth();
+    let days = now.getUTCDate() - start.getUTCDate();
+    let hours = now.getUTCHours() - start.getUTCHours();
+    let minutes = now.getUTCMinutes() - start.getUTCMinutes();
+    let seconds = now.getUTCSeconds() - start.getUTCSeconds();
+
+    if (seconds < 0) { seconds += 60; minutes--; }
+    if (minutes < 0) { minutes += 60; hours--; }
+    if (hours < 0) { hours += 24; days--; }
+    if (days < 0) {
+      const prevMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 0));
+      days += prevMonth.getUTCDate();
+      months--;
+    }
+    if (months < 0) { months += 12; years--; }
+    if (years < 0) return { years: 0, months: 0, days: 0, hours: 0, minutes: 0, seconds: 0 };
+
+    return { years, months, days, hours, minutes, seconds };
+  }
+
+  function updateCounter() {
+    const el = document.getElementById('time-counter');
+    if (!el) return;
+    const since = el.dataset.since;
+    if (!since) return;
+
+    const time = getTimeTogether(since);
+
+    const setText = (id: string, value: number) => {
+      const span = document.getElementById(id);
+      if (span) span.textContent = String(value);
+    };
+
+    setText('time-years', time.years);
+    setText('time-months', time.months);
+    setText('time-days', time.days);
+    setText('time-hours', time.hours);
+    setText('time-minutes', time.minutes);
+    setText('time-seconds', time.seconds);
+  }
+
+  updateCounter();
+  setInterval(updateCounter, 1000);
+</script>
+
+<style>
+  .time-counter {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .time-unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 3rem;
+  }
+
+  .time-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--color-primary, #8B6F47);
+    line-height: 1.1;
+  }
+
+  .time-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-text-muted, #8B7D6B);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+</style>

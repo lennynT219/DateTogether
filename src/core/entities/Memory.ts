@@ -4,5 +4,6 @@ export interface Memory {
   imageUrl: string;
   note?: string;
   location?: string;
+  createdBy?: string;
   createdAt: Date;
 }
