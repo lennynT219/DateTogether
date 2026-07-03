@@ -44,7 +44,7 @@ const totalPages = Math.ceil(dates.length / perPage);
             {dates.map((date) => <DateCard date={date} />)}
           </div>
 
-          <div class="book-view" id="book-view" data-total-pages={totalPages} style="display: none;">
+          <div class="book-view" id="book-view" data-total-pages={totalPages} data-per-page={perPage} style="display: none;">
             {/* Book cover wrapper — gives 3D thickness illusion */}
             <div class="book-cover">
               <div class="book-cover__spine-left"></div>
@@ -108,17 +108,55 @@ const totalPages = Math.ceil(dates.length / perPage);
   });
 
   // --- Book Pagination with flip animation ---
-  const perPage = 4; // 4 cards per page, 8 visible on desktop spread
+  const FLIP_DURATION_MS = 350;
+  const perPage = parseInt(bookView?.dataset.perPage ?? '4', 10);
   const totalBookPages = parseInt(bookView?.dataset.totalPages ?? '0', 10);
   let currentPage = 0;
   let isAnimating = false;
+
+  // Drive --flip-duration from the JS constant so CSS animations use the same value
+  bookView!.style.setProperty('--flip-duration', `${FLIP_DURATION_MS}ms`);
 
   // Extract pre-rendered card HTML from the grid (DOM is there even when hidden)
   const gridCards = gridView?.querySelectorAll('.date-card') ?? [];
   const cardHTML: string[] = [];
   gridCards.forEach(card => cardHTML.push(card.outerHTML));
 
-  function renderBookPage(pageIndex: number, direction: 'next' | 'prev' | 'none' = 'none') {
+  /**
+   * Promise-based delay for async/await animation control.
+   */
+  const delay = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
+
+  /**
+   * Runs a two-phase flip animation on an element:
+   *   1. Adds outClass → waits duration → swaps content → adds inClass → waits duration → cleans up
+   * Uses async/await instead of nested setTimeout callbacks.
+   * Does NOT reset the animation lock — the caller is responsible for that.
+   */
+  async function runTwoPhaseAnimation(
+    element: HTMLElement,
+    outClass: string,
+    inClass: string,
+    onMidpoint: () => void,
+  ): Promise<void> {
+    // Phase 1: page lifts and turns out
+    element.classList.add(outClass);
+
+    await delay(FLIP_DURATION_MS);
+
+    // Swap content at the midpoint
+    onMidpoint();
+
+    // Phase 2: page lands from the opposite side
+    element.classList.remove(outClass);
+    element.classList.add(inClass);
+
+    await delay(FLIP_DURATION_MS);
+
+    element.classList.remove(inClass);
+  }
+
+  async function renderBookPage(pageIndex: number, direction: 'next' | 'prev' | 'none' = 'none') {
     if (isAnimating) return;
     const leftPage = document.getElementById('book-page-left');
     const rightPage = document.getElementById('book-page-right');
@@ -126,26 +164,37 @@ const totalPages = Math.ceil(dates.length / perPage);
     const rightCards = rightPage?.querySelector('.book-page__cards');
     if (!leftCards || !rightCards) return;
 
-    const isMobile = window.innerWidth <= 768;
+    // Mobile detection via CSS — single source of truth (the @media query)
+    const isMobile = getComputedStyle(rightPage!).display === 'none';
 
-    // 4 cards per page. Left page = first 4, right page = next 4 (desktop only)
+    // Left page = first perPage cards, right page = next perPage cards (desktop only)
     const leftSlice = cardHTML.slice(pageIndex * perPage, pageIndex * perPage + perPage);
-    const rightSlice = isMobile 
-      ? [] 
+    const rightSlice = isMobile
+      ? []
       : cardHTML.slice(pageIndex * perPage + perPage, pageIndex * perPage + perPage * 2);
 
     if (direction !== 'none') {
       isAnimating = true;
-      const flipPage = direction === 'next' ? rightPage! : leftPage!;
 
-      flipPage.classList.add(direction === 'next' ? 'flipping-next' : 'flipping-prev');
+      // Mobile: only left page is visible (.book-page--right hidden by CSS media query).
+      // Turn always from the left (spiral) edge — same geometry as desktop next.
+      // Desktop next: right page turns from left edge.
+      // Desktop prev: left page turns from right edge.
+      const flipPage = isMobile
+        ? leftPage!
+        : (direction === 'next' ? rightPage! : leftPage!);
 
-      setTimeout(() => {
+      // Class names describe the edge the page turns FROM (geometry), not nav direction.
+      const turnsFromLeft = isMobile || direction === 'next';
+      const outClass = turnsFromLeft ? 'flip-out--from-left' : 'flip-out--from-right';
+      const inClass = turnsFromLeft ? 'flip-in--from-left' : 'flip-in--from-right';
+
+      await runTwoPhaseAnimation(flipPage, outClass, inClass, () => {
         leftCards.innerHTML = leftSlice.join('');
         rightCards.innerHTML = rightSlice.join('');
-        flipPage.classList.remove('flipping-next', 'flipping-prev');
-        isAnimating = false;
-      }, 500);
+      });
+      isAnimating = false;
+
     } else {
       leftCards.innerHTML = leftSlice.join('');
       rightCards.innerHTML = rightSlice.join('');
@@ -200,12 +249,21 @@ const totalPages = Math.ceil(dates.length / perPage);
   .dashboard {
     min-height: 100vh;
     padding: 1.5rem;
-    background: #2A1B12;
+    /* Dark espresso background — distinct from book cover #3E2A1E */
+    background-color: #1A1410;
+    /* Grid pattern like graph paper — subtle and atmospheric */
     background-image:
-      radial-gradient(circle, rgba(196, 168, 130, 0.06) 1.5px, transparent 1.5px),
-      radial-gradient(circle, rgba(196, 168, 130, 0.03) 1px, transparent 1px);
-    background-size: 24px 24px, 12px 12px;
-    background-position: 0 0, 12px 12px;
+      /* Major lines */
+      linear-gradient(rgba(196, 168, 130, 0.10) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(196, 168, 130, 0.10) 1px, transparent 1px),
+      /* Minor lines */
+      linear-gradient(rgba(196, 168, 130, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(196, 168, 130, 0.05) 1px, transparent 1px);
+    background-size:
+      60px 60px,
+      60px 60px,
+      15px 15px,
+      15px 15px;
     color: #E8DCC8;
   }
 
@@ -379,7 +437,8 @@ const totalPages = Math.ceil(dates.length / perPage);
     position: relative;
     gap: 0;
     border-radius: 4px;
-    overflow: hidden;
+    overflow: visible;
+    transform-style: preserve-3d;
   }
 
   /* ===== Spiral Binding — in the MIDDLE ===== */
@@ -388,31 +447,60 @@ const totalPages = Math.ceil(dates.length / perPage);
     flex-direction: column;
     justify-content: space-around;
     align-items: center;
-    width: 28px;
+    width: 36px;
     z-index: 10;
     position: relative;
-    padding: 2rem 0;
+    padding: 1.5rem 0;
     flex-shrink: 0;
   }
 
   .book-spiral__ring {
-    width: 20px;
-    height: 20px;
-    border: 3px solid #9A8A78;
+    width: 22px;
+    height: 22px;
+    /* Double border: outer dark + inner highlight for metallic look */
+    border: 2px solid #5A4A3A;
+    border-top-color: #B8A898;
+    border-left-color: #9A8A78;
+    border-right-color: #9A8A78;
+    border-bottom-color: #3A2E22;
     border-radius: 50%;
     background: transparent;
     box-shadow:
-      inset 0 1px 3px rgba(255, 255, 255, 0.25),
-      inset 0 -1px 2px rgba(0, 0, 0, 0.3),
-      0 1px 4px rgba(0, 0, 0, 0.5);
+      /* Inner highlight ring */
+      inset 0 1px 2px rgba(255, 255, 255, 0.35),
+      inset 0 -2px 3px rgba(0, 0, 0, 0.4),
+      /* Drop shadow onto the pages */
+      1px 0 3px rgba(0, 0, 0, 0.4),
+      2px 0 6px rgba(0, 0, 0, 0.25);
+    position: relative;
   }
 
-  /* Metallic alternation */
-  .book-spiral__ring:nth-child(odd) {
-    border-color: #B0A090;
+  /* Small dark dot in the center of each ring (the hole) */
+  .book-spiral__ring::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 4px;
+    height: 4px;
+    background: radial-gradient(circle, #1A120A 30%, #0A0604 100%);
+    border-radius: 50%;
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.8);
   }
-  .book-spiral__ring:nth-child(even) {
-    border-color: #807060;
+
+  /* Metallic color variation per ring */
+  .book-spiral__ring:nth-child(3n+1) {
+    border-top-color: #C8B8A8;
+    border-left-color: #A89888;
+  }
+  .book-spiral__ring:nth-child(3n+2) {
+    border-top-color: #B0A090;
+    border-left-color: #8A7A68;
+  }
+  .book-spiral__ring:nth-child(3n) {
+    border-top-color: #D0C0B0;
+    border-left-color: #9A8A78;
   }
 
   /* ===== Book Pages ===== */
@@ -423,22 +511,31 @@ const totalPages = Math.ceil(dates.length / perPage);
     min-height: 520px;
     position: relative;
     transform-style: preserve-3d;
-    transition: transform 0.5s ease-in-out;
     color: #3E2A1E;
+    overflow: hidden;
+    backface-visibility: hidden;
+    will-change: transform, opacity;
   }
 
+  /* Irregular paper edges — asymmetric corners so pages don't look machine-cut */
   .book-page--left {
-    border-radius: 4px 0 0 4px;
+    border-top-left-radius: 7px;
+    border-top-right-radius: 1px;
+    border-bottom-right-radius: 2px;
+    border-bottom-left-radius: 5px;
     box-shadow:
       inset -6px 0 16px rgba(0, 0, 0, 0.1),
-      0 0 0 1px rgba(0, 0, 0, 0.05);
+      0 0 0 1px rgba(0, 0, 0, 0.04);
   }
 
   .book-page--right {
-    border-radius: 0 4px 4px 0;
+    border-top-left-radius: 1px;
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 4px;
+    border-bottom-left-radius: 2px;
     box-shadow:
       inset 6px 0 16px rgba(0, 0, 0, 0.1),
-      0 0 0 1px rgba(0, 0, 0, 0.05);
+      0 0 0 1px rgba(0, 0, 0, 0.04);
   }
 
   /* Inner shadow near the spiral (depth toward binding) */
@@ -476,7 +573,10 @@ const totalPages = Math.ceil(dates.length / perPage);
   /* Tilted cards — simulate photos pasted in an album at angles */
   .book-page__cards :global(.date-card) {
     aspect-ratio: 3 / 4;
-    transition: transform 0.3s ease;
+    position: relative;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, z-index 0s step-end;
+    /* Neutralize DateCard default shadow in book context */
+    box-shadow: 0 1px 6px rgba(62, 42, 30, 0.12);
   }
 
   /* Alternate rotations for album feel */
@@ -493,33 +593,63 @@ const totalPages = Math.ceil(dates.length / perPage);
     transform: rotate(2.2deg);
   }
 
-  /* Straighten on hover */
+  /* Straighten + lift on hover — no artifacts, clean elevation */
   .book-page__cards :global(.date-card:hover) {
-    transform: rotate(0deg) scale(1.05);
+    transform: rotate(0deg) scale(1.06);
+    z-index: 6;
+    box-shadow:
+      0 8px 28px rgba(62, 42, 30, 0.22),
+      0 0 0 1px rgba(196, 168, 130, 0.3);
+  }
+
+  /* ===== Flip Animation — GPU-friendly (transform + opacity only) ===== */
+
+  /* ---- From-left: page turns from its left edge (desktop next, mobile) ---- */
+  .flip-out--from-left {
+    animation: flip-out-from-left var(--flip-duration) cubic-bezier(0.4, 0, 0.6, 1) forwards;
+    transform-origin: left center;
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  .flip-in--from-left {
+    animation: flip-in-from-left var(--flip-duration) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    transform-origin: left center;
     z-index: 5;
   }
 
-  /* ===== Flip Animation ===== */
-  .book-page.flipping-next {
-    animation: flip-next 0.5s ease-in-out;
-    transform-origin: left center;
-  }
-
-  .book-page.flipping-prev {
-    animation: flip-prev 0.5s ease-in-out;
+  /* ---- From-right: page turns from its right edge (desktop prev) ---- */
+  .flip-out--from-right {
+    animation: flip-out-from-right var(--flip-duration) cubic-bezier(0.4, 0, 0.6, 1) forwards;
     transform-origin: right center;
+    z-index: 5;
+    pointer-events: none;
   }
 
-  @keyframes flip-next {
-    0% { transform: rotateY(0deg); z-index: 5; }
-    50% { transform: rotateY(-90deg); z-index: 5; box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6); }
-    100% { transform: rotateY(0deg); z-index: 5; }
+  .flip-in--from-right {
+    animation: flip-in-from-right var(--flip-duration) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    transform-origin: right center;
+    z-index: 5;
   }
 
-  @keyframes flip-prev {
-    0% { transform: rotateY(0deg); z-index: 5; }
-    50% { transform: rotateY(90deg); z-index: 5; box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6); }
-    100% { transform: rotateY(0deg); z-index: 5; }
+  @keyframes flip-out-from-left {
+    0%   { transform: rotateY(0deg) translateX(0); opacity: 1; }
+    100% { transform: rotateY(-82deg) translateX(-16px); opacity: 0.12; }
+  }
+
+  @keyframes flip-in-from-left {
+    0%   { transform: rotateY(82deg) translateX(16px); opacity: 0.12; }
+    100% { transform: rotateY(0deg) translateX(0); opacity: 1; }
+  }
+
+  @keyframes flip-out-from-right {
+    0%   { transform: rotateY(0deg) translateX(0); opacity: 1; }
+    100% { transform: rotateY(82deg) translateX(16px); opacity: 0.12; }
+  }
+
+  @keyframes flip-in-from-right {
+    0%   { transform: rotateY(-82deg) translateX(-16px); opacity: 0.12; }
+    100% { transform: rotateY(0deg) translateX(0); opacity: 1; }
   }
 
   /* ===== Book Navigation ===== */
@@ -574,10 +704,14 @@ const totalPages = Math.ceil(dates.length / perPage);
     }
 
     .book-page--left {
-      border-radius: 0 4px 4px 0;
+      /* On mobile: spiral on left → irregular right (free) edge */
+      border-top-left-radius: 1px;
+      border-top-right-radius: 6px;
+      border-bottom-right-radius: 4px;
+      border-bottom-left-radius: 2px;
       box-shadow:
         inset 6px 0 16px rgba(0, 0, 0, 0.1),
-        0 0 0 1px rgba(0, 0, 0, 0.05);
+        0 0 0 1px rgba(0, 0, 0, 0.04);
     }
 
     .book-page--left::after {
@@ -607,11 +741,6 @@ const totalPages = Math.ceil(dates.length / perPage);
     .book-view__indicator {
       font-size: 0.8rem;
       min-width: auto;
-    }
-
-    /* On mobile, only 2 cards per page (not 4) since less space */
-    .book-page__cards {
-      grid-template-columns: repeat(2, 1fr);
     }
   }
 
