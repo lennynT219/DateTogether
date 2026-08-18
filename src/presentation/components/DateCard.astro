@@ -8,6 +8,7 @@ const { date } = Astro.props;
 const isCompleted = date.completed;
 const isFree = date.category === 'free';
 const displayTitle = isFree ? 'Espacio libre' : date.title;
+const dateNumber = String(date.orderIndex).padStart(2, '0');
 ---
 
 <article
@@ -17,24 +18,51 @@ const displayTitle = isFree ? 'Espacio libre' : date.title;
   data-category={date.category}
 >
   <div class="date-card__media">
-    {isCompleted ? (
-      <div class="date-card__icon date-card__icon--completed">
-        <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-        </svg>
-      </div>
-    ) : (
-      <div class="date-card__icon date-card__icon--locked">
-        <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-        </svg>
-      </div>
-    )}
+    {
+      isCompleted ? (
+        <div class="date-card__icon date-card__icon--completed">
+          <svg
+            aria-hidden="true"
+            focusable="false"
+            viewBox="0 0 24 24"
+            width="40"
+            height="40"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+          </svg>
+        </div>
+      ) : (
+        <div class="date-card__icon date-card__icon--locked">
+          <svg
+            aria-hidden="true"
+            focusable="false"
+            viewBox="0 0 24 24"
+            width="32"
+            height="32"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+        </div>
+      )
+    }
   </div>
   <div class="date-card__info">
+    <span class="date-card__number">Cita {dateNumber}</span>
     <h3 class="date-card__title">{displayTitle}</h3>
-    <span class={`date-card__badge ${isCompleted ? 'date-card__badge--completed' : 'date-card__badge--pending'}`}>
+    <span
+      class={`date-card__badge ${isCompleted ? 'date-card__badge--completed' : 'date-card__badge--pending'}`}
+    >
       {isCompleted ? 'Completada' : 'Pendiente'}
     </span>
   </div>
@@ -42,51 +70,72 @@ const displayTitle = isFree ? 'Espacio libre' : date.title;
 
 <style>
   .date-card {
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 2px 12px rgba(62, 42, 30, 0.08);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    cursor: pointer;
+    position: relative;
     display: flex;
     flex-direction: column;
-    aspect-ratio: 3 / 4;
+    isolation: isolate;
+    aspect-ratio: var(--date-card-aspect-ratio, 3 / 4);
+    overflow: var(--date-card-overflow, hidden);
+    background: var(--date-card-background, #fbf7ef);
+    border: var(--date-card-border, 1px solid rgba(62, 42, 30, 0.16));
+    border-radius: var(--date-card-radius, var(--radius-lg, 0.75rem));
+    box-shadow: var(--date-card-shadow, var(--shadow-card, 0 8px 24px rgba(8, 5, 3, 0.2)));
   }
-  .date-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(62, 42, 30, 0.15);
-  }
+
   .date-card__media {
     flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #F5F0E6;
+    min-height: 0;
+    background: var(
+      --date-card-media-background,
+      linear-gradient(rgba(62, 42, 30, 0.04) 1px, transparent 1px),
+      #eee5d7
+    );
+    background-size: var(--date-card-media-background-size, 100% 1.5rem);
   }
+
+  .date-card[data-category='free'] .date-card__media {
+    background: var(
+      --date-card-free-media-background,
+      radial-gradient(circle at center, rgba(196, 168, 130, 0.28), transparent 62%),
+      #f3eadc
+    );
+  }
+
   .date-card__icon {
     display: flex;
     align-items: center;
     justify-content: center;
   }
   .date-card__icon--locked {
-    color: #8B7D6B;
-    opacity: 0.6;
+    color: var(--date-card-locked-color, #5f5041);
   }
   .date-card__icon--completed {
-    color: #8B6F47;
-    opacity: 0.8;
+    color: var(--date-card-completed-color, #75452f);
   }
   .date-card__info {
-    padding: 0.85rem 1rem;
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
-    background: rgba(255, 255, 255, 0.95);
+    gap: var(--date-card-info-gap, 0.35rem);
+    padding: var(--date-card-info-padding, clamp(0.65rem, 2vw, 0.9rem) clamp(0.7rem, 2vw, 1rem));
+    background: var(--date-card-info-background, #fbf7ef);
+    border-top: var(--date-card-info-border, 1px solid rgba(62, 42, 30, 0.1));
+  }
+  .date-card__number {
+    color: var(--date-card-number-color, #765f4b);
+    font-size: var(--date-card-number-size, 0.64rem);
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    line-height: 1.2;
+    text-transform: uppercase;
   }
   .date-card__title {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #3E2A1E;
+    font-family: var(--font-family-display, Georgia, serif);
+    font-size: var(--date-card-title-size, clamp(0.84rem, 2vw, 1rem));
+    font-weight: 700;
+    color: var(--date-card-title-color, #3e2a1e);
     margin: 0;
     line-height: 1.3;
     display: -webkit-box;
@@ -95,18 +144,18 @@ const displayTitle = isFree ? 'Espacio libre' : date.title;
     overflow: hidden;
   }
   .date-card__badge {
-    font-size: 0.72rem;
-    font-weight: 600;
-    padding: 0.2rem 0.6rem;
-    border-radius: 6px;
+    font-size: var(--date-card-badge-size, 0.68rem);
+    font-weight: 700;
+    padding: var(--date-card-badge-padding, 0.24rem 0.55rem);
+    border-radius: var(--date-card-badge-radius, 999px);
     align-self: flex-start;
   }
   .date-card__badge--pending {
-    background: rgba(139, 111, 71, 0.1);
-    color: #8B6F47;
+    background: var(--date-card-pending-background, #e8dcc8);
+    color: var(--date-card-pending-color, #56391f);
   }
   .date-card__badge--completed {
-    background: rgba(76, 175, 80, 0.1);
-    color: #4CAF50;
+    background: var(--date-card-completed-background, #dce7d7);
+    color: var(--date-card-completed-badge-color, #2f5a38);
   }
 </style>

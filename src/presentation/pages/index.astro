@@ -17,239 +17,1691 @@ const { status, dates, progress } = await getDashboardData.execute();
 // Book: 4 cards per page, 8 visible on desktop spread (4 left + 4 right)
 const perPage = 4;
 const totalPages = Math.ceil(dates.length / perPage);
+const gridQuoteAnchorPositions = [8, 16, 24, 32, 40, 48, 56, 64, 72, 80, 88, 96];
+const gridQuotePhrases = [
+  'Todo lo bueno empezó cuando nos encontramos.',
+  'Haces que un día cualquiera sea mi favorito.',
+  'La rutina no pesa cuando estoy contigo.',
+  'Me quedaría a vivir en tu sonrisa.',
+  'Cada ratito contigo me lo guardo en el pecho.',
+  'Qué bonito es hacer historia a tu lado.',
+  'Cualquier plan es perfecto si vienes conmigo.',
+  'Mi mejor plan siempre vas a ser tú.',
+  'Hay momentos contigo que ojalá duraran toda la vida.',
+  'Le pones luz a todo, hasta a los días más grises.',
+  'Un abrazo tuyo es todo el refugio que necesito.',
+  'Contigo me siento en casa, no importa dónde estemos.',
+];
 ---
 
-<BaseLayout title="DatesTogether | Dashboard">
+<BaseLayout title="DatesTogether | Álbum de las 100 citas">
   <div class="dashboard">
-    <header class="dashboard__header">
-      <div class="dashboard__header-top">
-        <TimeCounter togetherSince={togetherSince} />
-        <div class="dashboard__actions">
-          <div class="dashboard__view-toggle">
-            <button class="view-btn view-btn--active" data-view="grid">Cuadrícula</button>
-            <button class="view-btn" data-view="book">Libro</button>
+    <div class="dashboard__shell">
+      <header class="dashboard__header">
+        <div class="dashboard__masthead">
+          <div class="dashboard__intro">
+            <p class="dashboard__eyebrow">El reto de nuestras 100 citas</p>
+            <h1>Nuestro álbum de citas</h1>
+            <p class="dashboard__supporting">
+              Cien planes para volver a elegirnos, una página y un recuerdo a la vez.
+            </p>
           </div>
-          <button class="dashboard__logout" id="logout-btn">Cerrar sesión</button>
+          <button class="dashboard__logout" id="logout-btn" type="button">Cerrar sesión</button>
         </div>
-      </div>
-      <ProgressBar completed={progress.completed} total={progress.total} />
-    </header>
-    <main class="dashboard__main">
+      </header>
       {
-        status === 'unavailable' ? (
-          <p class="dashboard__error">No se pudieron cargar las citas</p>
-        ) : dates.length === 0 ? (
-          <p class="dashboard__empty">Todavía no hay citas</p>
-        ) : (
+        status === 'ready' && (
           <>
-            <div class="dates-grid" id="grid-view">
-              {dates.map((date) => (
-                <DateCard date={date} />
-              ))}
-            </div>
-
-            <div
-              class="book-view"
-              id="book-view"
-              data-total-pages={totalPages}
-              data-per-page={perPage}
-              style="display: none;"
-            >
-              {/* Book cover wrapper — gives 3D thickness illusion */}
-              <div class="book-cover">
-                <div class="book-cover__spine-left" />
-
-                <div class="book-spread" id="book-spread">
-                  {/* Left page */}
-                  <div class="book-page book-page--left" id="book-page-left">
-                    <div class="book-page__cards" />
-                  </div>
-
-                  {/* Spiral binding — in the MIDDLE between pages */}
-                  <div class="book-spiral" id="book-spiral">
-                    {Array.from({ length: 16 }, () => (
-                      <div class="book-spiral__ring" />
-                    ))}
-                  </div>
-
-                  {/* Right page */}
-                  <div class="book-page book-page--right" id="book-page-right">
-                    <div class="book-page__cards" />
-                  </div>
+            <div class="dashboard__summary-slot" data-summary-slot>
+              <section class="dashboard__summary" data-summary-hud aria-labelledby="summary-title">
+                <p class="dashboard__hud-title" data-hud-title hidden></p>
+                <div class="dashboard__summary-counter">
+                  <p class="dashboard__summary-kicker">Tiempo compartido</p>
+                  <h2 id="summary-title">Lo que llevamos juntos</h2>
+                  <TimeCounter togetherSince={togetherSince} />
                 </div>
-
-                <div class="book-cover__spine-right" />
-                {/* Book thickness shadow at bottom */}
-                <div class="book-cover__thickness" />
-              </div>
-
-              <div class="book-view__nav">
-                <button class="book-view__nav-btn" id="book-prev">
-                  ← Anterior
-                </button>
-                <span class="book-view__indicator" id="book-indicator">
-                  Página 1 de {totalPages}
-                </span>
-                <button class="book-view__nav-btn" id="book-next">
-                  Siguiente →
-                </button>
-              </div>
+                <div class="dashboard__summary-progress">
+                  <ProgressBar completed={progress.completed} total={progress.total} />
+                </div>
+              </section>
             </div>
           </>
         )
       }
-    </main>
+      <main class="dashboard__main" id="main-content">
+        {
+          status === 'unavailable' ? (
+            <section class="dashboard__notice" aria-labelledby="unavailable-title">
+              <p class="dashboard__notice-kicker">El álbum está en pausa</p>
+              <h2 id="unavailable-title">No pudimos cargar las citas</h2>
+              <p>
+                Los recuerdos siguen a salvo. Intenta abrir el álbum nuevamente dentro de unos
+                minutos.
+              </p>
+            </section>
+          ) : dates.length === 0 ? (
+            <section class="dashboard__notice" aria-labelledby="empty-title">
+              <p class="dashboard__notice-kicker">Una historia por comenzar</p>
+              <h2 id="empty-title">El álbum todavía no tiene citas</h2>
+              <p>
+                Cuando haya citas disponibles, aparecerán aquí listas para crear nuevos recuerdos.
+              </p>
+            </section>
+          ) : (
+            <section class="dashboard__collection" aria-labelledby="collection-title">
+              <div class="dashboard__toolbar">
+                <div>
+                  <p class="dashboard__section-kicker">Colección principal</p>
+                  <h2 id="collection-title">Las páginas de nuestra historia</h2>
+                </div>
+                <div class="dashboard__view-toggle" role="group" aria-label="Vista de la colección">
+                  <button
+                    class="view-btn view-btn--active"
+                    type="button"
+                    data-view="grid"
+                    aria-pressed="true"
+                    aria-controls="grid-view"
+                  >
+                    Cuadrícula
+                  </button>
+                  <button
+                    class="view-btn"
+                    type="button"
+                    data-view="book"
+                    aria-pressed="false"
+                    aria-controls="book-view"
+                  >
+                    Álbum
+                  </button>
+                </div>
+              </div>
+
+              <div class="grid-archive" data-grid-archive>
+                <aside class="grid-archive__guide" aria-hidden="true">
+                  <span class="grid-archive__guide-kicker">Colección fotográfica</span>
+                  <span class="grid-archive__guide-count">
+                    Archivo 001—{String(dates.length).padStart(3, '0')}
+                  </span>
+                  <span class="grid-archive__guide-line">
+                    <span class="grid-archive__guide-fill" />
+                  </span>
+                </aside>
+                <div class="grid-archive__feed">
+                  <div class="dates-grid" id="grid-view" aria-hidden="false">
+                    {dates.map((date, index) => {
+                      const afterCard = index + 1;
+                      const phraseIndex = gridQuoteAnchorPositions.indexOf(afterCard);
+
+                      return (
+                        <>
+                          <DateCard date={date} />
+                          {
+                            phraseIndex >= 0 && (
+                              <blockquote
+                                class="grid-quote"
+                                data-after-card={afterCard}
+                                style={`--grid-item-settled-rotation: ${[-0.55, 0.42, -0.32, 0.5, -0.4, 0.3, -0.48, 0.36, -0.28, 0.46, -0.34, 0.38][phraseIndex]}deg`}
+                              >
+                                <p>{gridQuotePhrases[phraseIndex]}</p>
+                                <footer>Nota del archivo</footer>
+                              </blockquote>
+                            )
+                          }
+                        </>
+                      );
+                    })}
+                  </div>
+                  <div class="grid-feed__status" data-grid-feed-status hidden>
+                    <p
+                      class="grid-feed__count"
+                      data-grid-feed-count
+                      role="status"
+                      aria-live="polite"
+                      aria-atomic="true"
+                    />
+                    <div class="grid-feed__sentinel" data-grid-feed-sentinel aria-hidden="true">
+                      <span class="grid-feed__loader" />
+                      <span>Abriendo más recuerdos…</span>
+                    </div>
+                    <p class="grid-feed__end" data-grid-feed-end hidden>
+                      Aquí termina el archivo por ahora. Lo nuestro todavía sigue sumando páginas.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                class="book-view"
+                id="book-view"
+                data-total-pages={totalPages}
+                data-per-page={perPage}
+                aria-hidden="true"
+                aria-busy="false"
+                style="display: none;"
+              >
+                <div class="album-story" id="album-story">
+                  <div class="album-story__scene" id="album-story-scene">
+                    <aside class="album-story__rail" aria-hidden="true">
+                      <div class="album-story__rail-count">
+                        <span data-story-act-number>01</span>
+                        <span>/ 03</span>
+                      </div>
+                      <div class="album-story__rail-line">
+                        <span class="album-story__rail-fill" />
+                      </div>
+                      <div class="album-story__rail-acts">
+                        <span class="is-active" data-story-act="1">01</span>
+                        <span data-story-act="2">02</span>
+                        <span data-story-act="3">03</span>
+                      </div>
+                      <p data-story-act-label>La historia comienza</p>
+                    </aside>
+
+                    <p class="album-story__final-note" aria-hidden="true" data-album-quote>
+                      <span data-album-quote-text></span>
+                    </p>
+
+                    <div class="album-story__phrases" aria-hidden="true">
+                      <p class="album-story__phrase album-story__phrase--one" data-story-phrase>
+                        Todo empezó con un sí.
+                      </p>
+                      <p class="album-story__phrase album-story__phrase--two" data-story-phrase>
+                        Cien planes, una historia.
+                      </p>
+                      <p class="album-story__phrase album-story__phrase--three" data-story-phrase>
+                        Lo cotidiano también merece memoria.
+                      </p>
+                      <p class="album-story__phrase album-story__phrase--four" data-story-phrase>
+                        Volver a elegirnos.
+                      </p>
+                    </div>
+
+                    <p class="album-story__annotation album-story__annotation--opening" aria-hidden="true">
+                      <span>Archivo de lo cotidiano</span>
+                      Cien planes, una historia
+                    </p>
+                    <p class="album-story__annotation album-story__annotation--closing" aria-hidden="true">
+                      <span>Capítulo abierto</span>
+                      Lo mejor todavía se está escribiendo
+                    </p>
+
+                    <div class="album-stage" id="album-stage">
+                      <div class="album-stage__cast-shadow" aria-hidden="true" />
+                      <div class="album-object" id="album-object">
+                    <div class="album-cover__board" aria-hidden="true" />
+                    <div class="album-cover__stitching" aria-hidden="true" />
+                    <div class="album-cover__corners" aria-hidden="true">
+                      {Array.from({ length: 4 }, (_, index) => (
+                        <span class={`album-cover__corner album-cover__corner--${index + 1}`} />
+                      ))}
+                    </div>
+                    <div class="album-cover__plaque" aria-hidden="true">
+                      Vol. I
+                    </div>
+                    <div class="album-paper-block" aria-hidden="true">
+                      <span class="album-paper-block__outside album-paper-block__outside--left" />
+                      <span class="album-paper-block__outside album-paper-block__outside--right" />
+                      <span class="album-paper-block__bottom" />
+                    </div>
+
+                    <div class="album-spread" id="album-spread">
+                      <div class="album-page-stack album-page-stack--left" aria-hidden="true" />
+                      <div class="album-page-stack album-page-stack--right" aria-hidden="true" />
+
+                      <section
+                        class="album-leaf album-leaf--left"
+                        id="album-leaf-left"
+                        aria-label={`Hoja 1 de ${totalPages}, citas 1 a ${Math.min(perPage, dates.length)}`}
+                      >
+                        <div class="album-leaf__holes" aria-hidden="true">
+                          {Array.from({ length: 9 }, () => (
+                            <span />
+                          ))}
+                        </div>
+                        <div class="album-leaf__content" />
+                      </section>
+
+                      <div class="album-trough" aria-hidden="true" />
+
+                      <section
+                        class="album-leaf album-leaf--right"
+                        id="album-leaf-right"
+                        aria-label={`Hoja ${Math.min(2, totalPages)} de ${totalPages}`}
+                      >
+                        <div class="album-leaf__holes" aria-hidden="true">
+                          {Array.from({ length: 9 }, () => (
+                            <span />
+                          ))}
+                        </div>
+                        <div class="album-leaf__content" />
+                      </section>
+
+                      <div id="album-motion-host" aria-hidden="true" inert />
+
+                      <div class="album-rings" aria-hidden="true">
+                        {Array.from({ length: 9 }, () => (
+                          <span class="album-ring" />
+                        ))}
+                      </div>
+                    </div>
+
+                        <nav class="album-controls" aria-label="Paginación del álbum">
+                          <button class="album-controls__button" id="book-prev" type="button">
+                            <span aria-hidden="true">←</span>
+                            Anterior
+                          </button>
+                          <span class="album-controls__indicator" id="book-indicator">
+                            Hoja 01 de {totalPages} · Citas 01–
+                            {String(Math.min(perPage, dates.length)).padStart(2, '0')}
+                          </span>
+                          <button class="album-controls__button" id="book-next" type="button">
+                            Siguiente
+                            <span aria-hidden="true">→</span>
+                          </button>
+                        </nav>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <p
+                class="visually-hidden"
+                id="book-live-status"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+              />
+            </section>
+          )
+        }
+      </main>
+    </div>
   </div>
 </BaseLayout>
 
 <script>
-  // --- View Toggle ---
-  const gridBtn = document.querySelector('[data-view="grid"]');
-  const bookBtn = document.querySelector('[data-view="book"]');
+  // --- Album Story, Grid Archive, Contextual Summary, and Physical Leaf Navigation ---
+  const summaryHud = document.querySelector<HTMLElement>('[data-summary-hud]');
+  const summarySlot = document.querySelector<HTMLElement>('[data-summary-slot]');
+  const hudTitle = document.querySelector<HTMLElement>('[data-hud-title]');
+  const gridBtn = document.querySelector<HTMLButtonElement>('[data-view="grid"]');
+  const bookBtn = document.querySelector<HTMLButtonElement>('[data-view="book"]');
   const gridView = document.getElementById('grid-view');
+  const gridArchive = document.querySelector<HTMLElement>('[data-grid-archive]');
+  const gridFeedStatus = document.querySelector<HTMLElement>('[data-grid-feed-status]');
+  const gridFeedCount = document.querySelector<HTMLElement>('[data-grid-feed-count]');
+  const gridFeedSentinel = document.querySelector<HTMLElement>('[data-grid-feed-sentinel]');
+  const gridFeedEnd = document.querySelector<HTMLElement>('[data-grid-feed-end]');
   const bookView = document.getElementById('book-view');
+  const albumStory = document.getElementById('album-story');
+  const albumScene = document.getElementById('album-story-scene');
+  const albumStage = document.getElementById('album-stage');
+  const leftLeaf = document.getElementById('album-leaf-left');
+  const rightLeaf = document.getElementById('album-leaf-right');
+  const motionHost = document.getElementById('album-motion-host');
+  const indicator = document.getElementById('book-indicator');
+  const liveStatus = document.getElementById('book-live-status');
+  const prevBtn = document.getElementById('book-prev') as HTMLButtonElement | null;
+  const nextBtn = document.getElementById('book-next') as HTMLButtonElement | null;
 
-  gridBtn?.addEventListener('click', () => {
-    if (!gridView || !bookView || !gridBtn || !bookBtn) return;
-    gridView!.style.display = 'grid';
-    bookView!.style.display = 'none';
-    gridBtn.classList.add('view-btn--active');
-    bookBtn.classList.remove('view-btn--active');
-  });
+  const perPage = Number.parseInt(bookView?.dataset.perPage ?? '4', 10);
+  const totalBookPages = Number.parseInt(bookView?.dataset.totalPages ?? '0', 10);
+  const lastBookPage = Math.max(totalBookPages - 1, 0);
+  const TURN_DURATION_MS = 620;
+  const GRID_INITIAL_BATCH_SIZE = 24;
+  const GRID_BATCH_SIZE = 16;
+  const GRID_LOAD_AHEAD_PX = 320;
+  const GRID_MASONRY_ROW_PX = 4;
+  const ALBUM_PRESENTATION_LIMIT = 0.75;
+  const ALBUM_VISUAL_ACT_TWO_START = 0.28;
+  const ALBUM_VISUAL_ACT_THREE_START = 0.7;
+  const ALBUM_RAIL_ACT_TWO_START =
+    ALBUM_VISUAL_ACT_TWO_START / ALBUM_PRESENTATION_LIMIT;
+  const ALBUM_RAIL_ACT_THREE_START =
+    ALBUM_VISUAL_ACT_THREE_START / ALBUM_PRESENTATION_LIMIT;
+  const ALBUM_QUOTE_CYCLE_CONFIG = {
+    typeSpeedMs: 42,
+    holdDurationMs: 2200,
+    fadeDurationMs: 420,
+    activationProgress: ALBUM_RAIL_ACT_TWO_START,
+  };
+  const ALBUM_QUOTE_PHRASES = [
+    'Todo lo bueno empezó cuando nos encontramos.',
+    'Haces que un día cualquiera sea mi favorito.',
+    'La rutina no pesa cuando estoy contigo.',
+    'Me quedaría a vivir en tu sonrisa.',
+    'Cada ratito contigo me lo guardo en el pecho.',
+    'Qué bonito es hacer historia a tu lado.',
+    'Cualquier plan es perfecto si vienes conmigo.',
+    'Mi mejor plan siempre vas a ser tú.',
+    'Hay momentos contigo que ojalá duraran toda la vida.',
+    'Le pones luz a todo, hasta a los días más grises.',
+    'Un abrazo tuyo es todo el refugio que necesito.',
+    'Contigo me siento en casa, no importa dónde estemos.',
+  ];
+  const mobileQuery = window.matchMedia('(max-width: 768px)');
+  const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const storyActLabel = albumScene?.querySelector<HTMLElement>('[data-story-act-label]');
+  const storyActNumber = albumScene?.querySelector<HTMLElement>('[data-story-act-number]');
+  const albumQuote = albumScene?.querySelector<HTMLElement>('[data-album-quote]');
+  const albumQuoteText = albumQuote?.querySelector<HTMLElement>('[data-album-quote-text]');
+  const storyActMarkers = Array.from(
+    albumScene?.querySelectorAll<HTMLElement>('[data-story-act]') ?? [],
+  );
+  const storyPhrases = Array.from(
+    albumScene?.querySelectorAll<HTMLElement>('[data-story-phrase]') ?? [],
+  );
 
-  bookBtn?.addEventListener('click', () => {
-    if (!gridView || !bookView || !gridBtn || !bookBtn) return;
-    gridView!.style.display = 'none';
-    bookView!.style.display = 'block';
-    bookBtn.classList.add('view-btn--active');
-    gridBtn.classList.remove('view-btn--active');
-    renderBookPage(currentPage);
-  });
+  const gridCards = Array.from(gridView?.querySelectorAll<HTMLElement>('.date-card') ?? []);
+  const initialGridQuotePhrases = Array.from(
+    gridView?.querySelectorAll<HTMLElement>('.grid-quote p') ?? [],
+    (element) => element.textContent?.trim() ?? '',
+  ).filter(Boolean);
+  const albumCards = gridCards.map(
+    (card) => ({
+      html: card.outerHTML,
+      completed: card.dataset.completed === 'true',
+    }),
+  );
 
-  // --- Book Pagination with flip animation ---
-  const FLIP_DURATION_MS = 350;
-  const perPage = parseInt(bookView?.dataset.perPage ?? '4', 10);
-  const totalBookPages = parseInt(bookView?.dataset.totalPages ?? '0', 10);
+  interface GridQuoteTile {
+    element: HTMLElement;
+    afterCard: number;
+  }
+
   let currentPage = 0;
   let isAnimating = false;
-
-  // Drive --flip-duration from the JS constant so CSS animations use the same value
-  bookView?.style.setProperty('--flip-duration', `${FLIP_DURATION_MS}ms`);
-
-  // Extract pre-rendered card HTML from the grid (DOM is there even when hidden)
-  const gridCards = gridView?.querySelectorAll('.date-card') ?? [];
-  const cardHTML: string[] = [];
-  gridCards.forEach((card) => cardHTML.push(card.outerHTML));
-
-  /**
-   * Promise-based delay for async/await animation control.
-   */
-  const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
-
-  /**
-   * Runs a two-phase flip animation on an element:
-   *   1. Adds outClass → waits duration → swaps content → adds inClass → waits duration → cleans up
-   * Uses async/await instead of nested setTimeout callbacks.
-   * Does NOT reset the animation lock — the caller is responsible for that.
-   */
-  async function runTwoPhaseAnimation(
-    element: HTMLElement,
-    outClass: string,
-    inClass: string,
-    onMidpoint: () => void,
-  ): Promise<void> {
-    // Phase 1: page lifts and turns out
-    element.classList.add(outClass);
-
-    await delay(FLIP_DURATION_MS);
-
-    // Swap content at the midpoint
-    onMidpoint();
-
-    // Phase 2: page lands from the opposite side
-    element.classList.remove(outClass);
-    element.classList.add(inClass);
-
-    await delay(FLIP_DURATION_MS);
-
-    element.classList.remove(inClass);
-  }
-
-  async function renderBookPage(pageIndex: number, direction: 'next' | 'prev' | 'none' = 'none') {
-    if (isAnimating) return;
-    const leftPage = document.getElementById('book-page-left');
-    const rightPage = document.getElementById('book-page-right');
-    const leftCards = leftPage?.querySelector('.book-page__cards');
-    const rightCards = rightPage?.querySelector('.book-page__cards');
-    if (!leftCards || !rightCards) return;
-
-    // Mobile detection via CSS — single source of truth (the @media query)
-    const isMobile = getComputedStyle(rightPage!).display === 'none';
-
-    // Left page = first perPage cards, right page = next perPage cards (desktop only)
-    const leftSlice = cardHTML.slice(pageIndex * perPage, pageIndex * perPage + perPage);
-    const rightSlice = isMobile
-      ? []
-      : cardHTML.slice(pageIndex * perPage + perPage, pageIndex * perPage + perPage * 2);
-
-    if (direction !== 'none') {
-      isAnimating = true;
-
-      // Mobile: only left page is visible (.book-page--right hidden by CSS media query).
-      // Turn always from the left (spiral) edge — same geometry as desktop next.
-      // Desktop next: right page turns from left edge.
-      // Desktop prev: left page turns from right edge.
-      const flipPage = isMobile ? leftPage! : direction === 'next' ? rightPage! : leftPage!;
-
-      // Class names describe the edge the page turns FROM (geometry), not nav direction.
-      const turnsFromLeft = isMobile || direction === 'next';
-      const outClass = turnsFromLeft ? 'flip-out--from-left' : 'flip-out--from-right';
-      const inClass = turnsFromLeft ? 'flip-in--from-left' : 'flip-in--from-right';
-
-      await runTwoPhaseAnimation(flipPage, outClass, inClass, () => {
-        leftCards.innerHTML = leftSlice.join('');
-        rightCards.innerHTML = rightSlice.join('');
-      });
-      isAnimating = false;
-    } else {
-      leftCards.innerHTML = leftSlice.join('');
-      rightCards.innerHTML = rightSlice.join('');
-    }
-
-    const indicator = document.getElementById('book-indicator');
-    if (indicator) {
-      indicator.textContent = `Página ${pageIndex + 1} de ${totalBookPages}`;
-    }
-
-    // Disable nav buttons at bounds
-    const prevBtn = document.getElementById('book-prev') as HTMLButtonElement | null;
-    const nextBtn = document.getElementById('book-next') as HTMLButtonElement | null;
-    if (prevBtn) prevBtn.disabled = pageIndex === 0;
-    if (nextBtn) nextBtn.disabled = pageIndex >= totalBookPages - 1;
-
-    currentPage = pageIndex;
-  }
-
-  document.getElementById('book-prev')?.addEventListener('click', () => {
-    if (currentPage > 0) renderBookPage(currentPage - 1, 'prev');
-  });
-
-  document.getElementById('book-next')?.addEventListener('click', () => {
-    if (currentPage < totalBookPages - 1) renderBookPage(currentPage + 1, 'next');
-  });
-
-  // Initial render
-  renderBookPage(0);
-
-  // Re-render on resize
+  let motionToken = 0;
+  let storyFrame = 0;
+  let gridFrame = 0;
+  let gridBatchFrame = 0;
+  let gridSentinelSyncFrame = 0;
+  let gridMasonryFrame = 0;
+  let gridMasonryScrollRestoreUntil = 0;
+  let gridBatchObserver: IntersectionObserver | null = null;
+  let gridResizeObserver: ResizeObserver | null = null;
+  let gridSentinelArmed = false;
+  let gridFallbackListening = false;
+  let gridResizeObserverConnected = false;
+  let gridMeasuredWidth = 0;
+  let gridFeedInitialized = false;
+  let revealedGridCardCount = 0;
+  let gridQuoteTiles: GridQuoteTile[] = [];
+  const pendingGridRevealElements = new Set<HTMLElement>();
   let resizeTimer: number | undefined;
-  window.addEventListener('resize', () => {
-    clearTimeout(resizeTimer);
-    resizeTimer = window.setTimeout(() => {
-      if (bookView?.style.display !== 'none') {
-        renderBookPage(currentPage);
+  let albumQuoteTypeTimer: number | undefined;
+  let albumQuoteHoldTimer: number | undefined;
+  let albumQuoteFadeTimer: number | undefined;
+  let albumQuoteActive = false;
+  let albumQuoteOrder: string[] = [];
+  let previousAlbumQuoteOrder: string[] | null = null;
+  let lastDisplayedAlbumQuote: string | null = null;
+  let albumQuoteIndex = 0;
+
+  interface ActiveTurn {
+    token: number;
+    finish: () => void;
+  }
+
+  let activeTurn: ActiveTurn | null = null;
+
+  const padNumber = (value: number) => String(value).padStart(2, '0');
+  const clamp = (value: number, minimum: number, maximum: number) =>
+    Math.min(Math.max(value, minimum), maximum);
+  const lerp = (start: number, end: number, progress: number) =>
+    start + (end - start) * progress;
+  const clampPage = (pageIndex: number) =>
+    Math.min(Math.max(pageIndex, 0), lastBookPage);
+
+  function disableNativeAlbumDrags() {
+    for (const element of albumStage?.querySelectorAll('img, svg') ?? []) {
+      element.setAttribute('draggable', 'false');
+    }
+  }
+
+  function clearAlbumQuoteTimers() {
+    if (albumQuoteTypeTimer !== undefined) window.clearTimeout(albumQuoteTypeTimer);
+    if (albumQuoteHoldTimer !== undefined) window.clearTimeout(albumQuoteHoldTimer);
+    if (albumQuoteFadeTimer !== undefined) window.clearTimeout(albumQuoteFadeTimer);
+    albumQuoteTypeTimer = undefined;
+    albumQuoteHoldTimer = undefined;
+    albumQuoteFadeTimer = undefined;
+  }
+
+  function hasMatchingQuoteOrder(first: string[], second: string[] | null) {
+    return Boolean(second) && first.every((phrase, index) => phrase === second[index]);
+  }
+
+  function createRandomAlbumQuoteOrder() {
+    let nextOrder = [...ALBUM_QUOTE_PHRASES];
+
+    do {
+      for (let index = nextOrder.length - 1; index > 0; index -= 1) {
+        const randomIndex = Math.floor(Math.random() * (index + 1));
+        [nextOrder[index], nextOrder[randomIndex]] = [nextOrder[randomIndex], nextOrder[index]];
       }
-    }, 200);
+    } while (
+      nextOrder[0] === lastDisplayedAlbumQuote ||
+      hasMatchingQuoteOrder(nextOrder, previousAlbumQuoteOrder)
+    );
+
+    return nextOrder;
+  }
+
+  function resetAlbumQuoteCycle() {
+    clearAlbumQuoteTimers();
+    if (albumQuoteOrder.length) previousAlbumQuoteOrder = [...albumQuoteOrder];
+    albumQuoteActive = false;
+    albumQuoteOrder = [];
+    albumQuoteIndex = 0;
+    if (albumQuoteText) albumQuoteText.textContent = '';
+    albumQuote?.classList.remove('is-quote-active', 'is-quote-typing', 'is-quote-fading');
+    albumQuote?.style.removeProperty('--album-quote-opacity');
+    albumQuote?.style.removeProperty('--album-quote-y');
+    albumQuote?.style.removeProperty('--album-quote-fade-duration');
+  }
+
+  function fadeAlbumQuote() {
+    if (!albumQuoteActive || !albumQuote) return;
+    albumQuoteHoldTimer = undefined;
+    albumQuote.classList.remove('is-quote-typing');
+    albumQuote.classList.add('is-quote-fading');
+    albumQuote.style.setProperty('--album-quote-opacity', '0');
+    albumQuote.style.setProperty('--album-quote-y', '-0.15rem');
+    albumQuoteFadeTimer = window.setTimeout(() => {
+      albumQuoteFadeTimer = undefined;
+      if (!albumQuoteActive) return;
+      if (albumQuoteText) albumQuoteText.textContent = '';
+      albumQuote.classList.remove('is-quote-active', 'is-quote-fading');
+      albumQuoteIndex += 1;
+      showNextAlbumQuote();
+    }, ALBUM_QUOTE_CYCLE_CONFIG.fadeDurationMs);
+  }
+
+  function showNextAlbumQuote() {
+    if (!albumQuoteActive || !albumQuote || !albumQuoteText) return;
+    if (albumQuoteIndex >= albumQuoteOrder.length) {
+      previousAlbumQuoteOrder = [...albumQuoteOrder];
+      albumQuoteOrder = createRandomAlbumQuoteOrder();
+      albumQuoteIndex = 0;
+    }
+
+    const phrase = albumQuoteOrder[albumQuoteIndex];
+    if (!phrase) return;
+    let characterIndex = 0;
+    albumQuoteText.textContent = '';
+    albumQuote.classList.remove('is-quote-fading');
+    albumQuote.classList.add('is-quote-active', 'is-quote-typing');
+    albumQuote.style.setProperty('--album-quote-opacity', '1');
+    albumQuote.style.setProperty('--album-quote-y', '0rem');
+    albumQuote.style.setProperty(
+      '--album-quote-fade-duration',
+      `${ALBUM_QUOTE_CYCLE_CONFIG.fadeDurationMs}ms`,
+    );
+
+    const typeNextCharacter = () => {
+      if (!albumQuoteActive || !albumQuoteText) return;
+      albumQuoteText.textContent = phrase.slice(0, characterIndex + 1);
+      characterIndex += 1;
+
+      if (characterIndex >= phrase.length) {
+        albumQuoteTypeTimer = undefined;
+        lastDisplayedAlbumQuote = phrase;
+        albumQuote.classList.remove('is-quote-typing');
+        albumQuoteHoldTimer = window.setTimeout(
+          fadeAlbumQuote,
+          ALBUM_QUOTE_CYCLE_CONFIG.holdDurationMs,
+        );
+        return;
+      }
+
+      albumQuoteTypeTimer = window.setTimeout(
+        typeNextCharacter,
+        ALBUM_QUOTE_CYCLE_CONFIG.typeSpeedMs,
+      );
+    };
+
+    typeNextCharacter();
+  }
+
+  function startAlbumQuoteCycle() {
+    if (!albumQuote || !albumQuoteText) return;
+    resetAlbumQuoteCycle();
+    albumQuoteActive = true;
+    albumQuoteOrder = createRandomAlbumQuoteOrder();
+    showNextAlbumQuote();
+  }
+
+  function updateAlbumQuoteCycle(rawStoryProgress: number) {
+    const shouldBeActive =
+      isBookActive() &&
+      !reducedMotionQuery.matches &&
+      rawStoryProgress >= ALBUM_QUOTE_CYCLE_CONFIG.activationProgress;
+    if (!shouldBeActive) {
+      resetAlbumQuoteCycle();
+      return;
+    }
+    if (!albumQuoteActive) startAlbumQuoteCycle();
+  }
+
+  function getLeafCards(pageIndex: number) {
+    if (pageIndex < 0 || pageIndex >= totalBookPages) return [];
+    const start = pageIndex * perPage;
+    return albumCards.slice(start, start + perPage);
+  }
+
+  function getLeafRange(pageIndex: number) {
+    const cards = getLeafCards(pageIndex);
+    const start = pageIndex * perPage + 1;
+    return {
+      start,
+      end: start + Math.max(cards.length - 1, 0),
+      count: cards.length,
+    };
+  }
+
+  function getLeafLabel(pageIndex: number) {
+    const range = getLeafRange(pageIndex);
+    return `Hoja ${pageIndex + 1} de ${totalBookPages}, citas ${range.start} a ${range.end}`;
+  }
+
+  function getLeafContent(pageIndex: number) {
+    const cards = getLeafCards(pageIndex);
+    const completed = cards.filter((card) => card.completed).length;
+    const dateLabel = cards.length === 1 ? '1 cita' : `${cards.length} citas`;
+    const completedLabel = completed === 1 ? '1 completada' : `${completed} completadas`;
+
+    return `
+      <header class="album-leaf__header">
+        <span>Nuestras citas · Vol. I</span>
+        <span>Archivo personal</span>
+      </header>
+      <div class="album-leaf__cards">${cards.map((card) => card.html).join('')}</div>
+      <footer class="album-leaf__footer">
+        <span class="album-leaf__annotation">${dateLabel} · ${completedLabel}</span>
+        <span class="album-leaf__folio" aria-hidden="true">${padNumber(pageIndex + 1)}</span>
+      </footer>
+    `;
+  }
+
+  function getEndpaperContent() {
+    return `
+      <header class="album-leaf__header">
+        <span>Nuestras citas · Vol. I</span>
+        <span>Archivo personal</span>
+      </header>
+      <div class="album-endpaper">
+        <span class="album-endpaper__ornament" aria-hidden="true">✦</span>
+        <p>Fin de este capítulo</p>
+        <span>La historia continúa</span>
+      </div>
+      <footer class="album-leaf__footer album-leaf__footer--endpaper">
+        <span class="album-leaf__annotation">Colección en curso</span>
+      </footer>
+    `;
+  }
+
+  function renderLeaf(element: HTMLElement, pageIndex: number) {
+    const content = element.querySelector<HTMLElement>('.album-leaf__content');
+    if (!content) return;
+
+    if (pageIndex < 0 || pageIndex >= totalBookPages) {
+      element.classList.add('is-endpaper');
+      element.removeAttribute('data-leaf-index');
+      element.setAttribute('aria-label', 'Fin de este capítulo');
+      content.innerHTML = getEndpaperContent();
+      return;
+    }
+
+    element.classList.remove('is-endpaper');
+    element.dataset.leafIndex = String(pageIndex);
+    element.setAttribute('aria-label', getLeafLabel(pageIndex));
+    content.innerHTML = getLeafContent(pageIndex);
+  }
+
+  function renderStaticSpread(pageIndex: number) {
+    if (!leftLeaf || !rightLeaf) return;
+    const safeIndex = clampPage(pageIndex);
+    renderLeaf(leftLeaf, safeIndex);
+
+    if (mobileQuery.matches) {
+      rightLeaf.setAttribute('aria-hidden', 'true');
+      renderLeaf(rightLeaf, safeIndex + 1);
+    } else {
+      rightLeaf.removeAttribute('aria-hidden');
+      renderLeaf(rightLeaf, safeIndex + 1);
+    }
+    disableNativeAlbumDrags();
+  }
+
+  function getStatus(pageIndex: number) {
+    const safeIndex = clampPage(pageIndex);
+    const visiblePages = [safeIndex];
+    if (!mobileQuery.matches && safeIndex + 1 < totalBookPages) visiblePages.push(safeIndex + 1);
+
+    const firstPage = visiblePages[0] ?? 0;
+    const lastPage = visiblePages[visiblePages.length - 1] ?? firstPage;
+    const firstRange = getLeafRange(firstPage);
+    const lastRange = getLeafRange(lastPage);
+    const pageText =
+      visiblePages.length === 1
+        ? `Hoja ${padNumber(firstPage + 1)}`
+        : `Hojas ${padNumber(firstPage + 1)}–${padNumber(lastPage + 1)}`;
+
+    return `${pageText} de ${totalBookPages} · Citas ${padNumber(firstRange.start)}–${padNumber(lastRange.end)}`;
+  }
+
+  function updateStatus(pageIndex: number, announce = false) {
+    const statusText = getStatus(pageIndex);
+    if (indicator) indicator.textContent = statusText;
+    if (announce && liveStatus) liveStatus.textContent = statusText;
+  }
+
+  function updateControls() {
+    const isAtStart = currentPage <= 0;
+    const isAtEnd = currentPage >= lastBookPage;
+    if (prevBtn) {
+      prevBtn.disabled = isAtStart;
+      prevBtn.setAttribute('aria-disabled', String(isAnimating || isAtStart));
+    }
+    if (nextBtn) {
+      nextBtn.disabled = isAtEnd;
+      nextBtn.setAttribute('aria-disabled', String(isAnimating || isAtEnd));
+    }
+  }
+
+  function commitPage(pageIndex: number, announce = false) {
+    currentPage = clampPage(pageIndex);
+    renderStaticSpread(currentPage);
+    updateStatus(currentPage, announce);
+    updateControls();
+  }
+
+  function setBookBusy(busy: boolean) {
+    bookView?.setAttribute('aria-busy', String(busy));
+  }
+
+  function prepareReveal(targetIndex: number, direction: 'next' | 'prev') {
+    if (!leftLeaf || !rightLeaf) return;
+
+    if (mobileQuery.matches) {
+      if (direction === 'next') renderLeaf(leftLeaf, targetIndex);
+      return;
+    }
+
+    if (direction === 'next') renderLeaf(rightLeaf, targetIndex + 1);
+    else renderLeaf(leftLeaf, targetIndex);
+  }
+
+  function createTurningLeaf(pageIndex: number, direction: 'next' | 'prev') {
+    if (!motionHost) return null;
+    const content = getLeafContent(pageIndex);
+    const holes = `<div class="album-turn__holes">${Array.from({ length: 9 }, () => '<span></span>').join('')}</div>`;
+    motionHost.dataset.direction = direction;
+    motionHost.innerHTML = `
+      <div class="album-turn album-turn--${direction}" aria-hidden="true" inert>
+        <div class="album-turn__face album-turn__face--front">${holes}${content}</div>
+        <div class="album-turn__face album-turn__face--back">${holes}${content}</div>
+      </div>
+      <div class="album-turn-shadow album-turn-shadow--${direction}" aria-hidden="true" inert></div>
+    `;
+    disableNativeAlbumDrags();
+    return motionHost.querySelector<HTMLElement>('.album-turn');
+  }
+
+  function navigateTo(targetIndex: number, direction: 'next' | 'prev') {
+    if (isAnimating || targetIndex < 0 || targetIndex >= totalBookPages) return;
+
+    if (reducedMotionQuery.matches) {
+      commitPage(targetIndex, true);
+      return;
+    }
+
+    const sourceIndex = currentPage;
+    const turningPage = mobileQuery.matches
+      ? direction === 'next'
+        ? sourceIndex
+        : targetIndex
+      : direction === 'next'
+        ? sourceIndex + 1
+        : sourceIndex;
+
+    isAnimating = true;
+    setBookBusy(true);
+    updateControls();
+    prepareReveal(targetIndex, direction);
+    const turn = createTurningLeaf(turningPage, direction);
+    if (!turn || !motionHost) {
+      isAnimating = false;
+      setBookBusy(false);
+      commitPage(targetIndex, true);
+      return;
+    }
+
+    const token = ++motionToken;
+    let fallbackTimer = 0;
+
+    const finish = () => {
+      if (activeTurn?.token !== token) return;
+      window.clearTimeout(fallbackTimer);
+      turn.removeEventListener('animationend', onAnimationEnd);
+      motionHost.replaceChildren();
+      delete motionHost.dataset.direction;
+      activeTurn = null;
+      isAnimating = false;
+      setBookBusy(false);
+      commitPage(targetIndex, true);
+    };
+
+    const onAnimationEnd = (event: AnimationEvent) => {
+      if (event.target === turn) finish();
+    };
+
+    activeTurn = { token, finish };
+    turn.addEventListener('animationend', onAnimationEnd);
+    fallbackTimer = window.setTimeout(finish, TURN_DURATION_MS + 180);
+
+    window.requestAnimationFrame(() => {
+      if (activeTurn?.token !== token) return;
+      turn.classList.add('is-turning');
+      motionHost.querySelector('.album-turn-shadow')?.classList.add('is-moving');
+    });
+  }
+
+  function navigate(direction: 'next' | 'prev') {
+    navigateTo(currentPage + (direction === 'next' ? 1 : -1), direction);
+  }
+
+  function measureSummarySlot() {
+    if (!summaryHud || !summarySlot) return;
+    const activeMode = summaryHud.classList.contains('is-album-hud')
+      ? 'is-album-hud'
+      : summaryHud.classList.contains('is-grid-hud')
+        ? 'is-grid-hud'
+        : null;
+    const wasStatic = summaryHud.classList.contains('is-static-hud');
+    summaryHud.classList.add('is-measuring');
+    summaryHud.classList.remove('is-album-hud', 'is-grid-hud', 'is-static-hud');
+    summarySlot.style.height = 'auto';
+    summarySlot.style.height = `${summaryHud.getBoundingClientRect().height}px`;
+    if (activeMode) summaryHud.classList.add(activeMode);
+    if (wasStatic) summaryHud.classList.add('is-static-hud');
+    summaryHud.classList.remove('is-measuring');
+  }
+
+  const summaryMotionProperties = [
+    '--summary-opacity',
+    '--summary-x',
+    '--summary-y',
+    '--summary-mobile-y',
+    '--summary-scale',
+  ];
+
+  function resetSummaryHud() {
+    if (!summaryHud) return;
+    summaryHud.classList.remove('is-album-hud', 'is-grid-hud', 'is-static-hud');
+    bookView?.classList.remove('has-story-hud');
+    for (const property of summaryMotionProperties) summaryHud.style.removeProperty(property);
+    clearHudTitle();
+  }
+
+  function clearHudTitle() {
+    if (!hudTitle) return;
+    hudTitle.hidden = true;
+    hudTitle.textContent = '';
+  }
+
+  function setGridHudTitle(visible: boolean) {
+    if (!hudTitle) return;
+    hudTitle.textContent = 'Cien citas, una misma historia';
+    hudTitle.hidden = !visible;
+  }
+
+  function setAlbumHudActive(active: boolean, progress = 0) {
+    if (!summaryHud) return;
+    if (!active) {
+      if (summaryHud.classList.contains('is-album-hud')) resetSummaryHud();
+      return;
+    }
+
+    const entrance = clamp(progress, 0, 1);
+    summaryHud.classList.remove('is-grid-hud');
+    summaryHud.classList.add('is-album-hud');
+    summaryHud.classList.toggle('is-static-hud', reducedMotionQuery.matches);
+    bookView?.classList.add('has-story-hud');
+    clearHudTitle();
+
+    summaryHud.style.setProperty('--summary-opacity', `${lerp(0, 1, entrance)}`);
+    summaryHud.style.setProperty('--summary-x', `${lerp(-2.8, 0, entrance)}rem`);
+    summaryHud.style.setProperty('--summary-y', `${lerp(6, 0, entrance)}rem`);
+    summaryHud.style.setProperty('--summary-mobile-y', `${lerp(-1.5, 0, entrance)}rem`);
+    summaryHud.style.setProperty('--summary-scale', `${lerp(0.88, 1, entrance)}`);
+  }
+
+  function setGridHudActive(active: boolean, progress = 0, settled = false) {
+    if (!summaryHud) return;
+    if (!active) {
+      if (summaryHud.classList.contains('is-grid-hud')) resetSummaryHud();
+      return;
+    }
+
+    const entrance = clamp(progress, 0, 1);
+    summaryHud.classList.remove('is-album-hud', 'is-static-hud');
+    summaryHud.classList.add('is-grid-hud');
+    bookView?.classList.remove('has-story-hud');
+    setGridHudTitle(settled);
+    summaryHud.style.setProperty('--summary-opacity', `${lerp(0, 1, entrance)}`);
+    summaryHud.style.setProperty('--summary-x', `${lerp(2.4, 0, entrance)}rem`);
+    summaryHud.style.setProperty('--summary-y', `${lerp(-1.2, 0, entrance)}rem`);
+    summaryHud.style.setProperty('--summary-mobile-y', `${lerp(-1.2, 0, entrance)}rem`);
+    summaryHud.style.setProperty('--summary-scale', `${lerp(0.94, 1, entrance)}`);
+  }
+
+  function storyIsEnabled() {
+    return (
+      isBookActive() &&
+      !reducedMotionQuery.matches &&
+      bookView?.dataset.storyEnabled === 'true' &&
+      Boolean(albumStory && albumScene)
+    );
+  }
+
+  function updateStoryAct(progress: number) {
+    const act =
+      progress < ALBUM_RAIL_ACT_TWO_START ? 1 : progress < ALBUM_RAIL_ACT_THREE_START ? 2 : 3;
+    const labels = ['La historia comienza', 'El álbum toma el centro', 'Seguimos escribiendo'];
+    albumScene?.setAttribute('data-active-act', String(act));
+    if (storyActLabel) storyActLabel.textContent = labels[act - 1] ?? 'La historia comienza';
+    if (storyActNumber) storyActNumber.textContent = padNumber(act);
+    for (const marker of storyActMarkers) {
+      marker.classList.toggle('is-active', marker.dataset.storyAct === String(act));
+    }
+  }
+
+  function getAlbumFramingScale() {
+    return !mobileQuery.matches && window.innerHeight <= 832 ? 0.92 : 1;
+  }
+
+  function applyStoryPresentation(progress: number) {
+    if (!albumScene) return;
+    const normalized = clamp(progress, 0, 1);
+    const framingScale = getAlbumFramingScale();
+    const actOne = clamp(normalized / ALBUM_VISUAL_ACT_TWO_START, 0, 1);
+    const actTwo = clamp(
+      (normalized - ALBUM_VISUAL_ACT_TWO_START) /
+        (ALBUM_VISUAL_ACT_THREE_START - ALBUM_VISUAL_ACT_TWO_START),
+      0,
+      1,
+    );
+    const actThree = clamp(
+      (normalized - ALBUM_VISUAL_ACT_THREE_START) /
+        (1 - ALBUM_VISUAL_ACT_THREE_START),
+      0,
+      1,
+    );
+
+    let scale = lerp(0.68, 0.82, actOne);
+    let shiftY = lerp(10, 5, actOne);
+    let depth = lerp(-8, -3, actOne);
+    let rotateX = lerp(17, 10, actOne);
+    let rotateZ = lerp(-2.2, -1, actOne);
+    let shadowOpacity = lerp(0.92, 0.82, actOne);
+    let shadowScale = lerp(1.16, 1.02, actOne);
+    let shadowBlur = lerp(25, 18, actOne);
+
+    if (normalized >= ALBUM_VISUAL_ACT_TWO_START) {
+      scale = lerp(0.82, framingScale, actTwo);
+      shiftY = lerp(5, 0, actTwo);
+      depth = lerp(-3, 0, actTwo);
+      rotateX = lerp(10, 1.5, actTwo);
+      rotateZ = lerp(-1, 0, actTwo);
+      shadowOpacity = lerp(0.82, 0.64, actTwo);
+      shadowScale = lerp(1.02, 0.82, actTwo);
+      shadowBlur = lerp(18, 11, actTwo);
+    }
+
+    if (normalized >= ALBUM_VISUAL_ACT_THREE_START) {
+      scale = framingScale;
+      shiftY = lerp(0, 3, actThree);
+      depth = lerp(0, 2.2, actThree);
+      rotateX = lerp(1.5, 0.35, actThree);
+      rotateZ = lerp(0, 0.18, actThree);
+      shadowOpacity = lerp(0.64, 0.54, actThree);
+      shadowScale = lerp(0.82, 0.74, actThree);
+      shadowBlur = lerp(11, 9, actThree);
+    }
+
+    if (mobileQuery.matches) scale *= 0.94;
+
+    const controlsClarity = clamp((normalized - 0.16) / 0.42, 0, 1);
+    const closingOpacity = clamp((normalized - 0.72) / 0.15, 0, 1);
+    const openingOpacity = 1 - clamp((normalized - 0.12) / 0.3, 0, 1);
+    const phraseExit = clamp((normalized - 0.03) / 0.44, 0, 1);
+    const phraseDrifts = [
+      { x: -2.8, y: -1.2 },
+      { x: 2.2, y: -1.8 },
+      { x: -1.7, y: 2.4 },
+      { x: 3.1, y: 1.4 },
+    ];
+
+    albumScene.style.setProperty('--album-scale', `${scale}`);
+    albumScene.style.setProperty('--album-shift-y', `${shiftY}dvh`);
+    albumScene.style.setProperty('--album-depth', `${depth}rem`);
+    albumScene.style.setProperty('--album-rotate-x', `${rotateX}deg`);
+    albumScene.style.setProperty('--album-rotate-z', `${rotateZ}deg`);
+    albumScene.style.setProperty('--story-light-x', `${lerp(18, 82, normalized)}%`);
+    albumScene.style.setProperty('--album-light-shift', `${lerp(-72, 72, normalized)}%`);
+    albumScene.style.setProperty('--album-light-opacity', `${lerp(0.08, 0.34, actTwo)}`);
+    albumScene.style.setProperty('--shadow-opacity', `${shadowOpacity}`);
+    albumScene.style.setProperty('--shadow-scale', `${shadowScale}`);
+    albumScene.style.setProperty('--shadow-blur', `${shadowBlur}px`);
+    albumScene.style.setProperty('--paper-brightness', `${lerp(1, 1.07, actThree)}`);
+    albumScene.style.setProperty('--paper-sepia', `${lerp(0, 0.14, actThree)}`);
+    albumScene.style.setProperty('--controls-opacity', `${lerp(0.68, 1, controlsClarity)}`);
+    albumScene.style.setProperty('--controls-y', `${lerp(0.45, 0, controlsClarity)}rem`);
+    albumScene.style.setProperty('--folio-opacity', `${lerp(0.58, 1, controlsClarity)}`);
+    albumScene.style.setProperty('--opening-opacity', `${openingOpacity}`);
+    albumScene.style.setProperty('--opening-y', `${lerp(0, -5.5, normalized)}rem`);
+    albumScene.style.setProperty('--closing-opacity', `${closingOpacity}`);
+    albumScene.style.setProperty('--closing-y', `${lerp(3.2, -0.8, closingOpacity)}rem`);
+    albumScene.style.setProperty('--phrase-opacity', `${1 - phraseExit}`);
+    for (const [index, phrase] of storyPhrases.entries()) {
+      const drift = phraseDrifts[index] ?? { x: 0, y: 0 };
+      phrase.style.setProperty('--phrase-x', `${lerp(0, drift.x, phraseExit)}rem`);
+      phrase.style.setProperty('--phrase-y', `${lerp(0, drift.y, phraseExit)}rem`);
+    }
+  }
+
+  function clearStoryPresentation() {
+    setAlbumHudActive(false);
+    resetAlbumQuoteCycle();
+    if (!albumScene) return;
+    for (const property of [
+      '--story-progress',
+      '--album-scale',
+      '--album-shift-y',
+      '--album-depth',
+      '--album-rotate-x',
+      '--album-rotate-z',
+      '--story-light-x',
+      '--album-light-shift',
+      '--album-light-opacity',
+      '--shadow-opacity',
+      '--shadow-scale',
+      '--shadow-blur',
+      '--paper-brightness',
+      '--paper-sepia',
+      '--controls-opacity',
+      '--controls-y',
+      '--folio-opacity',
+      '--opening-opacity',
+      '--opening-y',
+      '--closing-opacity',
+      '--closing-y',
+      '--phrase-opacity',
+    ]) {
+      albumScene.style.removeProperty(property);
+    }
+    for (const phrase of storyPhrases) {
+      phrase.style.removeProperty('--phrase-x');
+      phrase.style.removeProperty('--phrase-y');
+    }
+    albumScene.removeAttribute('data-active-act');
+    if (storyActLabel) storyActLabel.textContent = 'La historia comienza';
+    if (storyActNumber) storyActNumber.textContent = '01';
+    for (const marker of storyActMarkers) {
+      marker.classList.toggle('is-active', marker.dataset.storyAct === '1');
+    }
+  }
+
+  function readStoryProgress() {
+    if (!albumStory || !albumScene) {
+      return { progress: 0, rect: null, sceneHeight: window.innerHeight };
+    }
+    const rect = albumStory.getBoundingClientRect();
+    const sceneHeight = albumScene.getBoundingClientRect().height || window.innerHeight;
+    const scrollRange = Math.max(albumStory.offsetHeight - sceneHeight, 1);
+    return {
+      progress: clamp(-rect.top / scrollRange, 0, 1),
+      rect,
+      sceneHeight,
+    };
+  }
+
+  function updateStoryFrame() {
+    storyFrame = 0;
+    if (!storyIsEnabled()) {
+      clearStoryPresentation();
+      if (isBookActive() && reducedMotionQuery.matches && albumStory) {
+        const rect = albumStory.getBoundingClientRect();
+        const viewportHeight = Math.max(window.innerHeight, 1);
+        const hudActive = rect.top < viewportHeight * 0.74 && rect.bottom > viewportHeight * 0.18;
+        setAlbumHudActive(hudActive, 1);
+      }
+      return;
+    }
+
+    const { progress: rawStoryProgress, rect, sceneHeight } = readStoryProgress();
+    if (!rect) return;
+    const presentationProgress = rawStoryProgress * ALBUM_PRESENTATION_LIMIT;
+    albumScene.style.setProperty('--story-progress', `${rawStoryProgress}`);
+    applyStoryPresentation(presentationProgress);
+    updateStoryAct(rawStoryProgress);
+    updateAlbumQuoteCycle(rawStoryProgress);
+
+    const entryDistance = Math.max(sceneHeight * 0.35, 1);
+    const exitDistance = Math.max(sceneHeight * 0.55, 1);
+    const entryProgress = clamp(1 - rect.top / entryDistance, 0, 1);
+    const exitProgress = clamp(rect.bottom / exitDistance, 0, 1);
+    const summaryProgress = Math.min(entryProgress, exitProgress);
+    setAlbumHudActive(summaryProgress > 0, summaryProgress);
+  }
+
+  function requestStoryUpdate() {
+    if (storyFrame) return;
+    storyFrame = window.requestAnimationFrame(updateStoryFrame);
+  }
+
+  function isBookActive() {
+    return bookView?.getAttribute('aria-hidden') === 'false';
+  }
+
+  function isGridViewActive() {
+    return gridView?.getAttribute('aria-hidden') === 'false';
+  }
+
+  function preserveGridScrollPositionDuring(mutation: () => void) {
+    if (!isGridViewActive()) {
+      mutation();
+      return;
+    }
+
+    const scrollLeft = window.scrollX;
+    const scrollTop = window.scrollY;
+    mutation();
+    void gridView?.offsetHeight;
+
+    if (window.scrollX !== scrollLeft || window.scrollY !== scrollTop) {
+      window.scrollTo(scrollLeft, scrollTop);
+    }
+  }
+
+  function createRandomGridQuoteOrder() {
+    const quoteOrder = [...initialGridQuotePhrases];
+    for (let index = quoteOrder.length - 1; index > 0; index -= 1) {
+      const randomIndex = Math.floor(Math.random() * (index + 1));
+      [quoteOrder[index], quoteOrder[randomIndex]] = [quoteOrder[randomIndex], quoteOrder[index]];
+    }
+    return quoteOrder;
+  }
+
+  function createGridQuoteTiles() {
+    if (!gridView || gridQuoteTiles.length) return;
+    const quoteOrder = createRandomGridQuoteOrder();
+    const quoteElements = Array.from(gridView.querySelectorAll<HTMLElement>('.grid-quote'));
+
+    gridQuoteTiles = quoteElements.flatMap((tile, index) => {
+      const afterCard = Number.parseInt(tile.dataset.afterCard ?? '', 10);
+      const phrase = quoteOrder[index];
+      const text = tile.querySelector<HTMLElement>('p');
+      if (!Number.isInteger(afterCard) || !phrase || !text) return [];
+
+      text.textContent = phrase;
+
+      return [{ element: tile, afterCard }];
+    });
+  }
+
+  function getVisibleGridItems() {
+    if (!gridView) return [];
+    return Array.from(gridView.children).filter(
+      (element): element is HTMLElement =>
+        element instanceof HTMLElement &&
+        !element.hidden &&
+        (element.classList.contains('date-card') || element.classList.contains('grid-quote')),
+    );
+  }
+
+  function measureGridMasonryItems() {
+    gridMasonryFrame = 0;
+    if (!gridView || !isGridViewActive()) return;
+
+    const visibleItems = getVisibleGridItems();
+    if (!visibleItems.length) return;
+    const shouldRestoreScrollPosition = performance.now() < gridMasonryScrollRestoreUntil;
+
+    const measureItems = () => {
+      const gridStyles = window.getComputedStyle(gridView);
+      const rowHeight = Number.parseFloat(gridStyles.gridAutoRows) || GRID_MASONRY_ROW_PX;
+      const rowGap = Number.parseFloat(gridStyles.rowGap) || 0;
+      const rowStride = rowHeight + rowGap;
+
+      for (const element of visibleItems) element.style.removeProperty('grid-row-end');
+      const measurements = visibleItems.map((element) => ({
+        element,
+        span: Math.max(1, Math.ceil((element.offsetHeight + rowGap) / rowStride)),
+      }));
+
+      gridMeasuredWidth = gridView.getBoundingClientRect().width;
+      for (const { element, span } of measurements) {
+        const nextSpan = `span ${span}`;
+        if (element.style.gridRowEnd !== nextSpan) element.style.gridRowEnd = nextSpan;
+      }
+
+      for (const element of pendingGridRevealElements) {
+        if (element.hidden) continue;
+        element.classList.remove('is-grid-item-measuring');
+        if (!reducedMotionQuery.matches) element.classList.add('is-grid-batch-revealed');
+        pendingGridRevealElements.delete(element);
+      }
+    };
+
+    if (shouldRestoreScrollPosition) preserveGridScrollPositionDuring(measureItems);
+    else measureItems();
+  }
+
+  function scheduleGridMasonryMeasurement(preserveScrollPosition = false) {
+    if (!isGridViewActive()) return;
+    if (preserveScrollPosition) {
+      gridMasonryScrollRestoreUntil = performance.now() + 100;
+    }
+    if (gridMasonryFrame || !isGridViewActive()) return;
+    gridMasonryFrame = window.requestAnimationFrame(measureGridMasonryItems);
+  }
+
+  function connectGridMasonryMeasurements() {
+    if (!gridView || gridResizeObserverConnected) return;
+    if (!gridResizeObserver && typeof window.ResizeObserver === 'function') {
+      gridResizeObserver = new ResizeObserver((entries) => {
+        let shouldMeasure = false;
+        for (const entry of entries) {
+          if (entry.target === gridView) {
+            if (Math.abs(entry.contentRect.width - gridMeasuredWidth) >= 0.5) {
+              gridMeasuredWidth = entry.contentRect.width;
+              shouldMeasure = true;
+            }
+          } else if (entry.target instanceof HTMLElement && !entry.target.hidden) {
+            shouldMeasure = true;
+          }
+        }
+        if (shouldMeasure) scheduleGridMasonryMeasurement();
+      });
+    }
+    if (!gridResizeObserver) return;
+
+    gridResizeObserverConnected = true;
+    gridResizeObserver.observe(gridView);
+    for (const element of getVisibleGridItems()) gridResizeObserver.observe(element);
+  }
+
+  function cancelGridMasonryMeasurement() {
+    if (gridMasonryFrame) window.cancelAnimationFrame(gridMasonryFrame);
+    gridMasonryFrame = 0;
+    gridMasonryScrollRestoreUntil = 0;
+  }
+
+  function stopGridMasonryMeasurements() {
+    cancelGridMasonryMeasurement();
+    gridResizeObserver?.disconnect();
+    gridResizeObserverConnected = false;
+  }
+
+  function revealGridElement(element: HTMLElement, delayIndex: number) {
+    element.hidden = false;
+    element.classList.add('is-grid-item-measuring');
+    element.style.setProperty(
+      '--grid-wave-delay',
+      `${reducedMotionQuery.matches ? 0 : Math.min(delayIndex, 9) * 38}ms`,
+    );
+    pendingGridRevealElements.add(element);
+    if (gridResizeObserverConnected) gridResizeObserver?.observe(element);
+  }
+
+  function disconnectGridBatchObserver() {
+    gridSentinelArmed = false;
+    gridBatchObserver?.disconnect();
+    gridBatchObserver = null;
+  }
+
+  function handleGridFallbackViewportChange() {
+    scheduleGridSentinelSync();
+  }
+
+  function startGridFallbackListeners() {
+    if (gridFallbackListening) return;
+    gridFallbackListening = true;
+    window.addEventListener('scroll', handleGridFallbackViewportChange, { passive: true });
+    window.addEventListener('resize', handleGridFallbackViewportChange, { passive: true });
+  }
+
+  function stopGridFallbackListeners() {
+    if (!gridFallbackListening) return;
+    gridFallbackListening = false;
+    window.removeEventListener('scroll', handleGridFallbackViewportChange);
+    window.removeEventListener('resize', handleGridFallbackViewportChange);
+  }
+
+  function stopGridSentinelLifecycle() {
+    disconnectGridBatchObserver();
+    stopGridFallbackListeners();
+    if (gridBatchFrame) window.cancelAnimationFrame(gridBatchFrame);
+    if (gridSentinelSyncFrame) window.cancelAnimationFrame(gridSentinelSyncFrame);
+    gridBatchFrame = 0;
+    gridSentinelSyncFrame = 0;
+  }
+
+  function gridFeedCanLoad() {
+    return Boolean(
+      gridFeedSentinel &&
+        !gridFeedSentinel.hidden &&
+        isGridViewActive() &&
+        revealedGridCardCount < gridCards.length,
+    );
+  }
+
+  function gridSentinelIsNearViewport() {
+    if (!gridFeedSentinel || !gridFeedCanLoad()) return false;
+    const rect = gridFeedSentinel.getBoundingClientRect();
+    const viewportHeight = Math.max(document.documentElement.clientHeight, window.innerHeight, 1);
+    return rect.width > 0 && rect.height > 0 && rect.top <= viewportHeight + GRID_LOAD_AHEAD_PX && rect.bottom >= 0;
+  }
+
+  function disarmGridSentinelObserver() {
+    gridSentinelArmed = false;
+    if (!gridBatchObserver || !gridFeedSentinel) return;
+    gridBatchObserver.unobserve(gridFeedSentinel);
+    gridBatchObserver.takeRecords();
+  }
+
+  function ensureGridBatchObserver() {
+    if (gridBatchObserver) return true;
+    if (typeof window.IntersectionObserver !== 'function') return false;
+
+    try {
+      gridBatchObserver = new IntersectionObserver(
+        (entries) => {
+          if (
+            !gridSentinelArmed ||
+            !gridFeedCanLoad() ||
+            !entries.some((entry) => entry.isIntersecting)
+          ) {
+            return;
+          }
+          disarmGridSentinelObserver();
+          scheduleNextGridBatch();
+        },
+        {
+          root: null,
+          rootMargin: `0px 0px ${GRID_LOAD_AHEAD_PX}px 0px`,
+          threshold: 0.01,
+        },
+      );
+    } catch {
+      gridBatchObserver = null;
+      return false;
+    }
+
+    return true;
+  }
+
+  function scheduleNextGridBatch() {
+    if (gridBatchFrame || !gridFeedCanLoad()) return;
+    disarmGridSentinelObserver();
+    gridBatchFrame = window.requestAnimationFrame(() => {
+      gridBatchFrame = 0;
+      if (!gridFeedCanLoad()) return;
+      revealNextGridBatch();
+      if (gridFeedCanLoad()) scheduleGridSentinelSync();
+    });
+  }
+
+  function scheduleGridSentinelSync() {
+    if (gridSentinelSyncFrame || !gridFeedCanLoad()) return;
+    gridSentinelSyncFrame = window.requestAnimationFrame(() => {
+      gridSentinelSyncFrame = 0;
+      if (!gridFeedCanLoad()) return;
+
+      const observerAvailable = ensureGridBatchObserver();
+      if (observerAvailable) stopGridFallbackListeners();
+      else startGridFallbackListeners();
+
+      if (gridSentinelIsNearViewport()) {
+        scheduleNextGridBatch();
+        return;
+      }
+
+      if (observerAvailable && gridBatchObserver && gridFeedSentinel && !gridSentinelArmed) {
+        gridBatchObserver.observe(gridFeedSentinel);
+        gridSentinelArmed = true;
+      }
+    });
+  }
+
+  function updateGridFeedStatus() {
+    if (!gridFeedStatus || !gridFeedCount) return;
+    const total = gridCards.length;
+    const isComplete = revealedGridCardCount >= total;
+    gridFeedStatus.hidden = false;
+    gridFeedCount.textContent = `Mostrando ${revealedGridCardCount} de ${total} citas`;
+    if (gridFeedSentinel) gridFeedSentinel.hidden = isComplete;
+    if (gridFeedEnd) gridFeedEnd.hidden = !isComplete;
+    if (isComplete) stopGridSentinelLifecycle();
+  }
+
+  function revealGridRange(start: number, end: number) {
+    const safeEnd = Math.min(end, gridCards.length);
+    const preserveScrollPosition = start > 0 && isGridViewActive();
+    const revealRange = () => {
+      let delayIndex = 0;
+
+      for (let index = start; index < safeEnd; index += 1) {
+        const card = gridCards[index];
+        if (!card) continue;
+        revealGridElement(card, delayIndex);
+        delayIndex += 1;
+      }
+
+      for (const quote of gridQuoteTiles) {
+        if (quote.afterCard > safeEnd || !quote.element.hidden) continue;
+        revealGridElement(quote.element, delayIndex);
+        delayIndex += 1;
+      }
+
+      revealedGridCardCount = safeEnd;
+      updateGridFeedStatus();
+      scheduleGridMasonryMeasurement(preserveScrollPosition);
+      requestGridUpdate();
+    };
+
+    if (preserveScrollPosition) preserveGridScrollPositionDuring(revealRange);
+    else revealRange();
+  }
+
+  function initializeGridFeed() {
+    if (gridFeedInitialized || !gridArchive || !gridView || !gridCards.length) return;
+    gridFeedInitialized = true;
+    createGridQuoteTiles();
+    gridArchive.classList.add('is-grid-enhanced');
+
+    for (const card of gridCards) card.hidden = true;
+    for (const quote of gridQuoteTiles) quote.element.hidden = true;
+    connectGridMasonryMeasurements();
+    revealGridRange(0, Math.min(GRID_INITIAL_BATCH_SIZE, gridCards.length));
+  }
+
+  function revealNextGridBatch() {
+    if (revealedGridCardCount >= gridCards.length) return;
+    revealGridRange(revealedGridCardCount, revealedGridCardCount + GRID_BATCH_SIZE);
+  }
+
+  function clearGridExperience() {
+    stopGridSentinelLifecycle();
+    cancelGridMasonryMeasurement();
+    if (gridFrame) window.cancelAnimationFrame(gridFrame);
+    gridFrame = 0;
+    gridArchive?.classList.remove('is-grid-active');
+    for (const property of ['--grid-progress', '--grid-depth-y', '--grid-light-x']) {
+      gridArchive?.style.removeProperty(property);
+    }
+    setGridHudActive(false);
+  }
+
+  function prepareGridExperience() {
+    clearGridExperience();
+    initializeGridFeed();
+    if (!gridArchive || !gridView || !isGridViewActive()) return;
+    connectGridMasonryMeasurements();
+    scheduleGridMasonryMeasurement();
+    scheduleGridSentinelSync();
+  }
+
+  function updateGridFrame() {
+    gridFrame = 0;
+    if (!gridArchive || !isGridViewActive()) return;
+
+    const rect = gridArchive.getBoundingClientRect();
+    const viewportHeight = Math.max(window.innerHeight, 1);
+    const progress = clamp(
+      (viewportHeight - rect.top) / Math.max(rect.height + viewportHeight, 1),
+      0,
+      1,
+    );
+    const entryProgress = clamp(
+      (viewportHeight * 0.82 - rect.top) / Math.max(viewportHeight * 0.52, 1),
+      0,
+      1,
+    );
+    const hudActive = rect.top < viewportHeight * 0.82 && rect.bottom > viewportHeight * 0.16;
+
+    gridArchive.style.setProperty('--grid-progress', `${progress}`);
+    gridArchive.style.setProperty('--grid-depth-y', `${lerp(1.4, -1.4, progress)}rem`);
+    gridArchive.style.setProperty('--grid-light-x', `${lerp(18, 82, progress)}%`);
+    gridArchive.classList.toggle('is-grid-active', hudActive);
+    setGridHudActive(
+      hudActive,
+      reducedMotionQuery.matches ? 1 : entryProgress,
+      reducedMotionQuery.matches ? hudActive : entryProgress >= 0.98,
+    );
+  }
+
+  function requestGridUpdate() {
+    if (gridFrame || !isGridViewActive()) return;
+    gridFrame = window.requestAnimationFrame(updateGridFrame);
+  }
+
+  type CollectionView = 'grid' | 'book';
+
+  interface CollectionViewOptions {
+    announce?: boolean;
+  }
+
+  function setCollectionView(
+    view: CollectionView,
+    { announce = true }: CollectionViewOptions = {},
+  ) {
+    if (!gridView || !bookView || !gridBtn || !bookBtn) return;
+
+    const showBook = view === 'book';
+    const wasBookActive = isBookActive();
+    clearAlbumPointerDrag();
+    if (!showBook) {
+      activeTurn?.finish();
+      clearStoryPresentation();
+    } else {
+      clearGridExperience();
+    }
+    measureSummarySlot();
+
+    if (showBook) gridView.style.display = 'none';
+    else gridView.style.removeProperty('display');
+    if (gridArchive) gridArchive.style.display = showBook ? 'none' : 'grid';
+    bookView.style.display = showBook ? 'block' : 'none';
+    bookView.dataset.storyEnabled = String(showBook && !reducedMotionQuery.matches);
+    gridBtn.classList.toggle('view-btn--active', !showBook);
+    bookBtn.classList.toggle('view-btn--active', showBook);
+    gridBtn.setAttribute('aria-pressed', String(!showBook));
+    bookBtn.setAttribute('aria-pressed', String(showBook));
+    gridView.setAttribute('aria-hidden', String(showBook));
+    bookView.setAttribute('aria-hidden', String(!showBook));
+
+    if (!showBook) {
+      prepareGridExperience();
+      requestGridUpdate();
+      if (announce && liveStatus) liveStatus.textContent = 'Vista cuadrícula.';
+      return;
+    }
+
+    if (wasBookActive) {
+      requestStoryUpdate();
+      if (announce && liveStatus) {
+        liveStatus.textContent = `Vista álbum. ${getStatus(currentPage)}`;
+      }
+      return;
+    }
+
+    commitPage(currentPage);
+    requestStoryUpdate();
+    if (announce && liveStatus) liveStatus.textContent = `Vista álbum. ${getStatus(currentPage)}`;
+  }
+
+  gridBtn?.addEventListener('click', () => setCollectionView('grid'));
+  bookBtn?.addEventListener('click', () => setCollectionView('book'));
+
+  prevBtn?.addEventListener('click', () => navigate('prev'));
+  nextBtn?.addEventListener('click', () => navigate('next'));
+
+  const clearGridRevealAnimation = (event: AnimationEvent) => {
+    if (!(event.target instanceof HTMLElement)) return;
+    event.target.classList.remove('is-grid-batch-revealed');
+  };
+  gridView?.addEventListener('animationend', clearGridRevealAnimation);
+  gridView?.addEventListener('animationcancel', clearGridRevealAnimation);
+
+  window.addEventListener('keydown', (event) => {
+    if (
+      !isBookActive() ||
+      event.altKey ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.shiftKey ||
+      (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight')
+    ) {
+      return;
+    }
+
+    const target = event.target;
+    if (
+      target instanceof Element &&
+      target.closest(
+        'input, textarea, select, button, [contenteditable]:not([contenteditable="false"])',
+      )
+    ) {
+      return;
+    }
+
+    const direction = event.key === 'ArrowRight' ? 'next' : 'prev';
+    const targetIndex = currentPage + (direction === 'next' ? 1 : -1);
+    if (targetIndex < 0 || targetIndex >= totalBookPages || isAnimating) return;
+    event.preventDefault();
+    navigate(direction);
+  });
+
+  const ALBUM_INTERACTIVE_SELECTOR =
+    'button, a, input, textarea, select, option, label, [role="button"], [role="link"], [contenteditable]:not([contenteditable="false"])';
+  let pointerStart: { id: number; x: number; y: number } | null = null;
+
+  function clearAlbumPointerDrag(pointerId = pointerStart?.id, releaseCapture = true) {
+    pointerStart = null;
+    albumStage?.classList.remove('is-pointer-dragging');
+    if (
+      releaseCapture &&
+      pointerId !== undefined &&
+      albumStage?.hasPointerCapture(pointerId)
+    ) {
+      albumStage.releasePointerCapture(pointerId);
+    }
+  }
+
+  albumStage?.addEventListener('pointerdown', (event) => {
+    if (!isBookActive() || isAnimating || !event.isPrimary || event.button !== 0) return;
+    if (event.target instanceof Element && event.target.closest(ALBUM_INTERACTIVE_SELECTOR)) {
+      return;
+    }
+    pointerStart = { id: event.pointerId, x: event.clientX, y: event.clientY };
+    albumStage.setPointerCapture(event.pointerId);
+    albumStage.classList.add('is-pointer-dragging');
+  });
+
+  albumStage?.addEventListener('pointerup', (event) => {
+    if (!pointerStart || pointerStart.id !== event.pointerId) return;
+    const dragStart = pointerStart;
+    const deltaX = event.clientX - dragStart.x;
+    const deltaY = event.clientY - dragStart.y;
+    clearAlbumPointerDrag(event.pointerId);
+
+    if (Math.abs(deltaX) < 48 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+    navigate(deltaX < 0 ? 'next' : 'prev');
+  });
+
+  albumStage?.addEventListener('pointercancel', (event) => {
+    clearAlbumPointerDrag(event.pointerId);
+  });
+
+  albumStage?.addEventListener('lostpointercapture', (event) => {
+    clearAlbumPointerDrag(event.pointerId, false);
+  });
+
+  albumStage?.addEventListener('dragstart', (event) => event.preventDefault());
+
+  reducedMotionQuery.addEventListener('change', () => {
+    activeTurn?.finish();
+    if (reducedMotionQuery.matches) {
+      for (const element of getVisibleGridItems()) {
+        element.classList.remove('is-grid-batch-revealed');
+      }
+    }
+    bookView?.style.setProperty(
+      '--turn-duration',
+      `${reducedMotionQuery.matches ? 0 : TURN_DURATION_MS}ms`,
+    );
+    bookView?.setAttribute('data-story-enabled', String(isBookActive() && !reducedMotionQuery.matches));
+    clearStoryPresentation();
+    if (isBookActive()) {
+      requestStoryUpdate();
+    } else {
+      prepareGridExperience();
+      requestGridUpdate();
+    }
+  });
+
+  window.addEventListener('pagehide', () => {
+    resetAlbumQuoteCycle();
+    stopGridSentinelLifecycle();
+    stopGridMasonryMeasurements();
+  });
+  window.addEventListener('pageshow', () => {
+    if (isBookActive()) requestStoryUpdate();
+    else prepareGridExperience();
+  });
+
+  window.addEventListener(
+    'scroll',
+    () => {
+      if (isBookActive()) requestStoryUpdate();
+      else requestGridUpdate();
+    },
+    { passive: true },
+  );
+
+  window.addEventListener('resize', () => {
+    clearAlbumPointerDrag();
+    activeTurn?.finish();
+    window.clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(() => {
+      measureSummarySlot();
+      renderStaticSpread(currentPage);
+      updateStatus(currentPage);
+      updateControls();
+      if (isBookActive()) {
+        requestStoryUpdate();
+      } else {
+        scheduleGridMasonryMeasurement();
+        requestGridUpdate();
+      }
+    }, 120);
+  });
+
+  measureSummarySlot();
+  bookView?.style.setProperty(
+    '--turn-duration',
+    `${reducedMotionQuery.matches ? 0 : TURN_DURATION_MS}ms`,
+  );
+  commitPage(0);
+  setCollectionView('book', { announce: false });
+  initializeGridFeed();
+  document.fonts?.ready.then(() => {
+    measureSummarySlot();
+    scheduleGridMasonryMeasurement();
   });
 
   // --- Logout ---
@@ -264,99 +1716,404 @@ const totalPages = Math.ceil(dates.length / perPage);
   /* ===== Dashboard Base ===== */
   .dashboard {
     min-height: 100vh;
-    padding: 1.5rem;
-    /* Dark espresso background — distinct from book cover #3E2A1E */
-    background-color: #1a1410;
-    /* Grid pattern like graph paper — subtle and atmospheric */
+    overflow: clip;
+    padding: clamp(0.75rem, 3vw, 2.5rem);
+    background-color: var(--color-canvas, #1a1410);
     background-image:
-      /* Major lines */
       linear-gradient(rgba(196, 168, 130, 0.1) 1px, transparent 1px),
       linear-gradient(90deg, rgba(196, 168, 130, 0.1) 1px, transparent 1px),
-      /* Minor lines */ linear-gradient(rgba(196, 168, 130, 0.05) 1px, transparent 1px),
+      linear-gradient(rgba(196, 168, 130, 0.045) 1px, transparent 1px),
       linear-gradient(90deg, rgba(196, 168, 130, 0.05) 1px, transparent 1px);
     background-size:
       60px 60px,
       60px 60px,
       15px 15px,
       15px 15px;
-    color: #e8dcc8;
+    color: var(--color-accent-light, #e8dcc8);
   }
 
-  .dashboard__header {
-    margin-bottom: 2rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .dashboard__header-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-    flex-wrap: wrap;
-  }
-
-  .dashboard__actions {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    flex-wrap: wrap;
-  }
-
-  .dashboard__main {
-    max-width: 1400px;
+  .dashboard__shell {
+    width: min(100%, 87.5rem);
     margin: 0 auto;
   }
 
-  .dashboard__error,
-  .dashboard__empty {
-    text-align: center;
-    color: #c4a882;
-    font-size: 1rem;
-    padding: 3rem;
+  .dashboard__header {
+    margin-bottom: 0;
+  }
+
+  .dashboard__masthead {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 2rem;
+    margin: clamp(1rem, 3vw, 2rem) 0 clamp(1.5rem, 4vw, 2.75rem);
+  }
+
+  .dashboard__intro {
+    max-width: 48rem;
+  }
+
+  .dashboard__eyebrow,
+  .dashboard__summary-kicker,
+  .dashboard__section-kicker,
+  .dashboard__notice-kicker {
+    color: var(--color-accent, #c4a882);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .dashboard__intro h1 {
+    max-width: 14ch;
+    margin-top: 0.4rem;
+    color: #f6ecdc;
+    font-family: var(--font-family-display, Georgia, serif);
+    font-size: clamp(2.25rem, 8vw, 5rem);
+    font-weight: 700;
+    letter-spacing: -0.045em;
+    line-height: 0.96;
+    text-wrap: balance;
+  }
+
+  .dashboard__supporting {
+    max-width: 39rem;
+    margin-top: 1rem;
+    color: #cdbb9f;
+    font-size: clamp(0.95rem, 2vw, 1.08rem);
+    line-height: 1.65;
+    text-wrap: pretty;
+  }
+
+  .dashboard__summary-slot {
+    min-width: 0;
+    margin-bottom: clamp(2rem, 5vw, 3.5rem);
+  }
+
+  .dashboard__summary {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(17rem, 0.75fr);
+    gap: clamp(1.5rem, 4vw, 3.5rem);
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    padding: clamp(1.25rem, 4vw, 2.5rem);
+    background:
+      linear-gradient(115deg, rgba(255, 255, 255, 0.045), transparent 42%),
+      var(--color-leather, #3e2a1e);
+    border: 1px solid rgba(232, 220, 200, 0.22);
+    border-radius: var(--radius-xl, 1rem);
+    box-shadow: var(--shadow-paper, 0 18px 45px rgba(8, 5, 3, 0.24));
+    transition:
+      padding 240ms ease,
+      gap 240ms ease,
+      background 240ms ease,
+      border-color 240ms ease,
+      border-radius 240ms ease,
+      box-shadow 240ms ease,
+      opacity 240ms ease,
+      transform 240ms ease;
+  }
+
+  .dashboard__summary::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: repeating-linear-gradient(
+      92deg,
+      transparent 0,
+      transparent 12px,
+      rgba(255, 255, 255, 0.018) 13px
+    );
+  }
+
+  .dashboard__summary-counter,
+  .dashboard__summary-progress {
+    position: relative;
+    min-width: 0;
+  }
+
+  .dashboard__hud-title {
+    position: relative;
+    z-index: 1;
+    grid-column: 1 / -1;
+    max-width: 24ch;
+    margin: 0;
+    color: #f5dfba;
+    font-family: var(--font-family-display, Georgia, serif);
+    font-size: clamp(0.95rem, 1.7vw, 1.2rem);
+    font-style: italic;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    line-height: 1.15;
+    text-wrap: balance;
+  }
+
+  .dashboard__hud-title[hidden] {
+    display: none;
+  }
+
+  .dashboard__summary-counter h2 {
+    margin: 0.2rem 0 1.5rem;
+    color: #f6ecdc;
+    font-family: var(--font-family-display, Georgia, serif);
+    font-size: clamp(1.3rem, 3vw, 1.75rem);
+    line-height: 1.2;
+    transition:
+      margin 240ms ease,
+      font-size 240ms ease;
+  }
+
+  .dashboard__summary-progress {
+    display: flex;
+    align-items: center;
+    padding-left: clamp(1.5rem, 4vw, 3.5rem);
+    border-left: 1px solid rgba(232, 220, 200, 0.2);
+    transition:
+      padding 240ms ease,
+      border-color 240ms ease;
+  }
+
+  .dashboard__summary.is-album-hud {
+    --time-counter-gap: 0.24rem;
+    --time-counter-value-size: 0.86rem;
+    --time-counter-label-size: 0.5rem;
+    --time-counter-label-spacing: 0.04em;
+    --time-counter-label-margin: 0.08rem;
+    --progress-header-gap: 0.35rem;
+    --progress-header-margin: 0.32rem;
+    --progress-eyebrow-size: 0.52rem;
+    --progress-label-size: 0.72rem;
+    --progress-percentage-size: 0.72rem;
+    --progress-track-height: 0.34rem;
+    --progress-detail-margin: 0.2rem;
+    --progress-detail-size: 0.58rem;
+    position: fixed;
+    z-index: 80;
+    top: 50%;
+    left: max(0.75rem, calc((100vw - 87.5rem) / 2));
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.65rem;
+    width: 11.5rem;
+    max-height: calc(100dvh - 2rem);
+    padding: 0.72rem;
+    background:
+      linear-gradient(145deg, rgba(255, 255, 255, 0.055), transparent 46%), rgba(36, 25, 18, 0.9);
+    border-color: rgba(225, 196, 151, 0.34);
+    border-radius: 0.4rem;
+    box-shadow:
+      0 1.1rem 2.8rem rgba(7, 4, 2, 0.42),
+      inset 0 1px 0 rgba(255, 255, 255, 0.045);
+    opacity: var(--summary-opacity, 1);
+    transform: translate3d(
+        var(--summary-x, 0),
+        calc(-50% + var(--summary-y, 0rem)),
+        0
+      )
+      scale(var(--summary-scale, 1));
+    backdrop-filter: blur(14px) saturate(112%);
+    -webkit-backdrop-filter: blur(14px) saturate(112%);
+  }
+
+  .dashboard__summary:is(.is-album-hud, .is-grid-hud) .dashboard__summary-kicker,
+  .dashboard__summary:is(.is-album-hud, .is-grid-hud) .dashboard__summary-counter h2 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .dashboard__summary:is(.is-album-hud, .is-grid-hud)
+    .dashboard__summary-counter
+    :global(.time-counter) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .dashboard__summary:is(.is-album-hud, .is-grid-hud) .dashboard__summary-progress {
+    padding-top: 0.58rem;
+    padding-left: 0;
+    border-top: 1px solid rgba(232, 220, 200, 0.18);
+    border-left: 0;
+  }
+
+  .dashboard__summary:is(.is-album-hud, .is-grid-hud) :global(.progress-bar__eyebrow),
+  .dashboard__summary:is(.is-album-hud, .is-grid-hud) :global(.progress-bar__detail) {
+    display: none;
+  }
+
+  .dashboard__summary.is-grid-hud {
+    --time-counter-gap: 0.24rem;
+    --time-counter-value-size: 0.78rem;
+    --time-counter-label-size: 0.48rem;
+    --time-counter-label-spacing: 0.04em;
+    --time-counter-label-margin: 0.06rem;
+    --progress-header-gap: 0.3rem;
+    --progress-header-margin: 0.25rem;
+    --progress-eyebrow-size: 0.5rem;
+    --progress-label-size: 0.68rem;
+    --progress-percentage-size: 0.68rem;
+    --progress-track-height: 0.3rem;
+    --progress-detail-margin: 0.18rem;
+    --progress-detail-size: 0.56rem;
+    position: fixed;
+    z-index: 80;
+    top: max(0.8rem, env(safe-area-inset-top));
+    right: max(0.8rem, calc((100vw - 87.5rem) / 2));
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(10.5rem, 0.9fr);
+    gap: 0.55rem 0.8rem;
+    width: min(31rem, calc(100vw - 1.6rem));
+    max-height: calc(100dvh - 1.6rem);
+    padding: 0.68rem 0.78rem;
+    background:
+      linear-gradient(112deg, rgba(230, 193, 137, 0.08), transparent 44%),
+      rgba(38, 26, 18, 0.92);
+    border-color: rgba(225, 196, 151, 0.38);
+    border-radius: 0.35rem;
+    box-shadow:
+      0 1rem 2.6rem rgba(7, 4, 2, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    opacity: var(--summary-opacity, 1);
+    transform: translate3d(var(--summary-x, 0), var(--summary-y, 0), 0)
+      scale(var(--summary-scale, 1));
+    transform-origin: top right;
+    pointer-events: none;
+    backdrop-filter: blur(14px) saturate(110%);
+    -webkit-backdrop-filter: blur(14px) saturate(110%);
+  }
+
+  .dashboard__summary.is-grid-hud .dashboard__hud-title {
+    max-width: none;
+    padding-bottom: 0.48rem;
+    border-bottom: 1px solid rgba(232, 203, 157, 0.2);
+  }
+
+  .dashboard__summary.is-grid-hud .dashboard__summary-counter :global(.time-counter) {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .dashboard__summary.is-grid-hud .dashboard__summary-progress {
+    padding-top: 0;
+    padding-left: 0.8rem;
+    border-top: 0;
+    border-left: 1px solid rgba(232, 220, 200, 0.18);
+  }
+
+  .dashboard__summary.is-measuring,
+  .dashboard__summary.is-measuring :global(*) {
+    transition: none !important;
+  }
+
+  .dashboard__main,
+  .dashboard__collection {
+    min-width: 0;
+  }
+
+  .dashboard__main :where([id], button, a, [tabindex]) {
+    scroll-margin: 1rem;
+  }
+
+  .dashboard__notice {
+    width: min(100%, 48rem);
+    margin: clamp(1rem, 5vw, 4rem) auto;
+    padding: clamp(1.5rem, 5vw, 3rem);
+    color: var(--color-text, #3e2a1e);
+    background:
+      linear-gradient(rgba(62, 42, 30, 0.035) 1px, transparent 1px), var(--color-paper, #f5f0e6);
+    background-size: 100% 1.75rem;
+    border: 1px solid rgba(196, 168, 130, 0.7);
+    border-left: 0.45rem solid var(--color-primary, #8b6f47);
+    border-radius: 0.25rem var(--radius-lg, 0.75rem) var(--radius-lg, 0.75rem) 0.25rem;
+    box-shadow: var(--shadow-paper, 0 18px 45px rgba(8, 5, 3, 0.24));
+  }
+
+  .dashboard__notice h2 {
+    margin: 0.35rem 0 0.6rem;
+    font-family: var(--font-family-display, Georgia, serif);
+    font-size: clamp(1.5rem, 5vw, 2.25rem);
+    line-height: 1.1;
+    text-wrap: balance;
+  }
+
+  .dashboard__notice p:last-child {
+    max-width: 58ch;
+    color: var(--color-ink-soft, #6a5847);
+  }
+
+  .dashboard__toolbar {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1.25rem;
+    margin-bottom: clamp(1.25rem, 3vw, 2rem);
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(232, 220, 200, 0.18);
+  }
+
+  .dashboard__toolbar h2 {
+    margin-top: 0.2rem;
+    color: #f3e8d6;
+    font-family: var(--font-family-display, Georgia, serif);
+    font-size: clamp(1.4rem, 4vw, 2rem);
+    line-height: 1.15;
   }
 
   /* ===== View Toggle ===== */
   .dashboard__view-toggle {
     display: flex;
-    gap: 0;
-    border: 1.5px solid rgba(232, 220, 200, 0.25);
-    border-radius: 10px;
+    flex: 0 0 auto;
+    padding: 0.2rem;
+    background: var(--color-canvas-raised, #241a14);
+    border: 1px solid rgba(232, 220, 200, 0.32);
+    border-radius: var(--radius-lg, 0.75rem);
     overflow: hidden;
   }
 
   .view-btn {
+    min-height: 2.75rem;
     background: transparent;
     border: none;
-    color: rgba(232, 220, 200, 0.55);
-    padding: 0.45rem 1.25rem;
+    color: var(--color-accent, #c4a882);
+    padding: 0.55rem 1rem;
+    border-radius: calc(var(--radius-lg, 0.75rem) - 0.2rem);
     font-size: 0.85rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
+    font-weight: 700;
+    transition:
+      background 0.2s ease,
+      color 0.2s ease;
   }
 
   .view-btn:hover {
-    color: #e8dcc8;
-    background: rgba(196, 168, 130, 0.08);
+    color: #fff7e9;
+    background: rgba(196, 168, 130, 0.12);
   }
 
-  .view-btn--active {
-    background: rgba(196, 168, 130, 0.15);
-    color: #e8dcc8;
+  .view-btn--active,
+  .view-btn[aria-pressed='true'] {
+    background: var(--color-paper-aged, #e8dcc8);
+    color: var(--color-leather, #3e2a1e);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   }
 
   /* ===== Logout ===== */
   .dashboard__logout {
+    min-height: 2.75rem;
+    flex: 0 0 auto;
     background: transparent;
-    border: 1.5px solid rgba(232, 220, 200, 0.25);
-    color: rgba(232, 220, 200, 0.75);
-    padding: 0.45rem 1.25rem;
-    border-radius: 10px;
+    border: 1px solid rgba(232, 220, 200, 0.35);
+    color: #d2c2aa;
+    padding: 0.55rem 1rem;
+    border-radius: var(--radius-md, 0.5rem);
     font-size: 0.85rem;
-    font-weight: 500;
-    cursor: pointer;
+    font-weight: 600;
     transition:
       border-color 0.2s,
       background 0.2s,
@@ -364,454 +2121,2441 @@ const totalPages = Math.ceil(dates.length / perPage);
   }
 
   .dashboard__logout:hover {
-    border-color: #c4a882;
-    background: rgba(196, 168, 130, 0.08);
-    color: #e8dcc8;
+    border-color: var(--color-accent, #c4a882);
+    background: rgba(196, 168, 130, 0.1);
+    color: #fff7e9;
   }
 
   /* ===== Grid View ===== */
-  .dates-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 1.5rem;
-  }
-
-  @media (max-width: 480px) {
-    .dates-grid {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 1rem;
-    }
-  }
-
-  /* ===== Book View — Spiral Album with Cover ===== */
-  .book-view {
-    padding-top: 1rem;
-    perspective: 2500px;
-  }
-
-  /* Book cover wrapper — the "leather" cover visible around the pages */
-  .book-cover {
+  .grid-archive {
+    --grid-progress: 0;
+    --grid-depth-y: 1.4rem;
+    --grid-light-x: 18%;
     position: relative;
-    max-width: 1100px;
-    margin: 0 auto 1rem;
-    padding: 0;
-    background: #3e2a1e;
-    border-radius: 6px;
-    box-shadow:
-      0 4px 8px rgba(0, 0, 0, 0.3),
-      0 12px 36px rgba(0, 0, 0, 0.5),
-      0 24px 60px rgba(0, 0, 0, 0.3);
-    transform: rotateX(2deg);
-    transform-style: preserve-3d;
+    display: grid;
+    grid-template-columns: minmax(5.5rem, 7rem) minmax(0, 1fr);
+    gap: clamp(1rem, 2.4vw, 2rem);
+    min-width: 0;
+    padding: clamp(0.9rem, 2.4vw, 1.6rem);
+    overflow: clip;
+    background:
+      linear-gradient(90deg, rgba(229, 201, 158, 0.045) 1px, transparent 1px),
+      linear-gradient(rgba(229, 201, 158, 0.035) 1px, transparent 1px),
+      rgba(20, 14, 10, 0.18);
+    background-position:
+      center calc(50% + var(--grid-depth-y)),
+      center calc(50% + var(--grid-depth-y)),
+      center;
+    background-size:
+      4.5rem 100%,
+      100% 4.5rem,
+      auto;
+    border: 1px solid rgba(232, 220, 200, 0.1);
+    border-radius: 0.28rem;
+    isolation: isolate;
   }
 
-  /* Left spine (book cover edge left) */
-  .book-cover__spine-left {
+  .grid-archive::before {
+    content: '';
     position: absolute;
-    left: -8px;
-    top: 0;
-    bottom: 0;
-    width: 12px;
-    background: linear-gradient(to right, #2a1b12, #3e2a1e);
-    border-radius: 4px 0 0 4px;
-    box-shadow: -2px 0 6px rgba(0, 0, 0, 0.4);
-  }
-
-  /* Right spine (book cover edge right) */
-  .book-cover__spine-right {
-    position: absolute;
-    right: -8px;
-    top: 0;
-    bottom: 0;
-    width: 12px;
-    background: linear-gradient(to left, #2a1b12, #3e2a1e);
-    border-radius: 0 4px 4px 0;
-    box-shadow: 2px 0 6px rgba(0, 0, 0, 0.4);
-  }
-
-  /* Book thickness — the pages stacked, visible at the bottom */
-  .book-cover__thickness {
-    position: absolute;
-    left: 4px;
-    right: 4px;
-    bottom: -8px;
-    height: 10px;
-    background: repeating-linear-gradient(
-      to right,
-      #e8dcc8 0px,
-      #e8dcc8 2px,
-      #d4c5b2 2px,
-      #d4c5b2 4px
-    );
-    border-radius: 0 0 4px 4px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     z-index: -1;
-  }
-
-  /* The spread: two pages + spiral in middle */
-  .book-spread {
-    display: flex;
-    justify-content: center;
-    align-items: stretch;
-    position: relative;
-    gap: 0;
-    border-radius: 4px;
-    overflow: visible;
-    transform-style: preserve-3d;
-  }
-
-  /* ===== Spiral Binding — in the MIDDLE ===== */
-  .book-spiral {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-around;
-    align-items: center;
-    width: 36px;
-    z-index: 10;
-    position: relative;
-    padding: 1.5rem 0;
-    flex-shrink: 0;
-  }
-
-  .book-spiral__ring {
-    width: 22px;
-    height: 22px;
-    /* Double border: outer dark + inner highlight for metallic look */
-    border: 2px solid #5a4a3a;
-    border-top-color: #b8a898;
-    border-left-color: #9a8a78;
-    border-right-color: #9a8a78;
-    border-bottom-color: #3a2e22;
-    border-radius: 50%;
-    background: transparent;
-    box-shadow:
-      /* Inner highlight ring */
-      inset 0 1px 2px rgba(255, 255, 255, 0.35),
-      inset 0 -2px 3px rgba(0, 0, 0, 0.4),
-      /* Drop shadow onto the pages */ 1px 0 3px rgba(0, 0, 0, 0.4),
-      2px 0 6px rgba(0, 0, 0, 0.25);
-    position: relative;
-  }
-
-  /* Small dark dot in the center of each ring (the hole) */
-  .book-spiral__ring::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 4px;
-    height: 4px;
-    background: radial-gradient(circle, #1a120a 30%, #0a0604 100%);
-    border-radius: 50%;
-    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.8);
-  }
-
-  /* Metallic color variation per ring */
-  .book-spiral__ring:nth-child(3n + 1) {
-    border-top-color: #c8b8a8;
-    border-left-color: #a89888;
-  }
-  .book-spiral__ring:nth-child(3n + 2) {
-    border-top-color: #b0a090;
-    border-left-color: #8a7a68;
-  }
-  .book-spiral__ring:nth-child(3n) {
-    border-top-color: #d0c0b0;
-    border-left-color: #9a8a78;
-  }
-
-  /* ===== Book Pages ===== */
-  .book-page {
-    flex: 1;
-    background: #f5f0e6;
-    padding: 1.75rem 2rem;
-    min-height: 520px;
-    position: relative;
-    transform-style: preserve-3d;
-    color: #3e2a1e;
-    overflow: hidden;
-    backface-visibility: hidden;
-    will-change: transform, opacity;
-  }
-
-  /* Irregular paper edges — asymmetric corners so pages don't look machine-cut */
-  .book-page--left {
-    border-top-left-radius: 7px;
-    border-top-right-radius: 1px;
-    border-bottom-right-radius: 2px;
-    border-bottom-left-radius: 5px;
-    box-shadow:
-      inset -6px 0 16px rgba(0, 0, 0, 0.1),
-      0 0 0 1px rgba(0, 0, 0, 0.04);
-  }
-
-  .book-page--right {
-    border-top-left-radius: 1px;
-    border-top-right-radius: 6px;
-    border-bottom-right-radius: 4px;
-    border-bottom-left-radius: 2px;
-    box-shadow:
-      inset 6px 0 16px rgba(0, 0, 0, 0.1),
-      0 0 0 1px rgba(0, 0, 0, 0.04);
-  }
-
-  /* Inner shadow near the spiral (depth toward binding) */
-  .book-page--left::after {
-    content: '';
-    position: absolute;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    width: 24px;
-    background: linear-gradient(to left, rgba(0, 0, 0, 0.15), transparent);
+    inset: -12% -8%;
+    opacity: 0.46;
+    background: radial-gradient(
+      circle at var(--grid-light-x) 34%,
+      rgba(196, 145, 83, 0.14),
+      transparent 36%
+    );
+    transform: translate3d(0, var(--grid-depth-y), 0);
     pointer-events: none;
   }
 
-  .book-page--right::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 24px;
-    background: linear-gradient(to right, rgba(0, 0, 0, 0.15), transparent);
-    pointer-events: none;
-  }
-
-  /* ===== Cards inside book pages — 2x2 grid with slight rotations ===== */
-  .book-page__cards {
+  .grid-archive__guide {
+    position: sticky;
+    top: 6.25rem;
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.25rem;
-    height: 100%;
-    align-content: center;
+    grid-template-columns: 0.7rem minmax(0, 1fr);
+    grid-template-rows: auto auto 11rem;
+    align-self: start;
+    gap: 0.45rem 0.6rem;
+    min-width: 0;
+    padding: 0.15rem 0;
+    color: #bca17c;
+    pointer-events: none;
   }
 
-  /* Tilted cards — simulate photos pasted in an album at angles */
-  .book-page__cards :global(.date-card) {
-    aspect-ratio: 3 / 4;
+  .grid-archive__guide-kicker,
+  .grid-archive__guide-count {
+    grid-column: 1 / -1;
+  }
+
+  .grid-archive__guide-kicker {
+    font-size: 0.5rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    line-height: 1.35;
+    text-transform: uppercase;
+  }
+
+  .grid-archive__guide-count {
+    color: #ebd4b0;
+    font-family: var(--font-family-display, Georgia, serif);
+    font-size: clamp(0.68rem, 1vw, 0.78rem);
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    letter-spacing: 0.045em;
+    line-height: 1.25;
+  }
+
+  .grid-archive__guide-line {
     position: relative;
-    transition:
-      transform 0.3s ease,
-      box-shadow 0.3s ease,
-      z-index 0s step-end;
-    /* Neutralize DateCard default shadow in book context */
-    box-shadow: 0 1px 6px rgba(62, 42, 30, 0.12);
+    grid-column: 1;
+    grid-row: 3;
+    display: block;
+    width: 1px;
+    height: 100%;
+    margin-inline: auto;
+    overflow: hidden;
+    background: rgba(225, 196, 151, 0.22);
   }
 
-  /* Alternate rotations for album feel */
-  .book-page__cards :global(.date-card:nth-child(1)) {
-    transform: rotate(-2.5deg);
-  }
-  .book-page__cards :global(.date-card:nth-child(2)) {
-    transform: rotate(1.8deg);
-  }
-  .book-page__cards :global(.date-card:nth-child(3)) {
-    transform: rotate(-1.2deg);
-  }
-  .book-page__cards :global(.date-card:nth-child(4)) {
-    transform: rotate(2.2deg);
+  .grid-archive__guide-fill {
+    position: absolute;
+    inset: 0;
+    display: block;
+    background: linear-gradient(#c99f66, #f1d19c);
+    box-shadow: 0 0 0.55rem rgba(226, 179, 105, 0.4);
+    transform: scaleY(var(--grid-progress));
+    transform-origin: top;
   }
 
-  /* Straighten + lift on hover — no artifacts, clean elevation */
-  .book-page__cards :global(.date-card:hover) {
-    transform: rotate(0deg) scale(1.06);
-    z-index: 6;
+  .grid-archive__feed {
+    min-width: 0;
+  }
+
+  .dates-grid {
+    --grid-item-gap: 0.75rem;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-auto-flow: row;
+    gap: var(--grid-item-gap);
+    min-width: 0;
+  }
+
+  .grid-archive.is-grid-enhanced .dates-grid {
+    grid-auto-rows: 4px;
+    align-items: start;
+  }
+
+  .dates-grid > :global(.date-card),
+  .dates-grid > :global(.grid-quote) {
+    box-sizing: border-box;
+    grid-column: auto / span 1;
+    width: 100%;
+    min-width: 0;
+    align-self: start;
+  }
+
+  .dates-grid > :global([hidden]) {
+    display: none !important;
+  }
+
+  .dates-grid > :global(.date-card) {
+    --date-card-aspect-ratio: 5 / 6;
+    --date-card-background: #eee3cd;
+    --date-card-border: 1px solid rgba(97, 68, 43, 0.34);
+    --date-card-radius: 0.32rem;
+    --date-card-shadow:
+      0 0.8rem 1.8rem rgba(5, 3, 2, 0.3), 0 0.16rem 0.35rem rgba(5, 3, 2, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.38);
+    --date-card-media-background:
+      radial-gradient(circle at 68% 24%, rgba(119, 78, 46, 0.12), transparent 42%),
+      linear-gradient(142deg, rgba(255, 255, 255, 0.2), transparent 52%), #d8c3a2;
+    --date-card-free-media-background:
+      radial-gradient(circle at center, rgba(143, 91, 47, 0.19), transparent 62%), #dfcfb4;
+    --date-card-info-background: #f1e6d2;
+    --date-card-info-border: 1px solid rgba(91, 61, 38, 0.2);
+    --date-card-info-padding: clamp(0.58rem, 1vw, 0.8rem);
+    --date-card-title-color: #352218;
+    --date-card-number-color: #6d4c32;
+    --date-card-pending-background: #d8c29d;
+    --date-card-pending-color: #4d321f;
+    --date-card-completed-background: #c3c6a7;
+    --date-card-completed-badge-color: #2d402f;
+  }
+
+  .dates-grid > :global(.date-card:nth-of-type(7n + 1)) {
+    --date-card-aspect-ratio: 4 / 5;
+  }
+
+  .dates-grid > :global(.date-card:nth-of-type(7n + 2)) {
+    --date-card-aspect-ratio: 1;
+  }
+
+  .dates-grid > :global(.date-card:nth-of-type(7n + 3)) {
+    --date-card-aspect-ratio: 3 / 4;
+  }
+
+  .dates-grid > :global(.date-card:nth-of-type(7n + 5)) {
+    --date-card-aspect-ratio: 6 / 7;
+  }
+
+  .dates-grid > :global(.date-card:nth-of-type(7n)) {
+    --date-card-aspect-ratio: 7 / 8;
+  }
+
+  .dates-grid > :global(.grid-quote) {
+    position: relative;
+    display: grid;
+    align-content: space-between;
+    gap: 1.3rem;
+    min-height: clamp(10rem, 18vw, 15rem);
+    overflow: hidden;
+    padding: clamp(1rem, 1.8vw, 1.45rem);
+    color: #38251a;
+    background:
+      linear-gradient(rgba(91, 61, 38, 0.045) 1px, transparent 1px),
+      radial-gradient(circle at 85% 12%, rgba(128, 83, 47, 0.12), transparent 35%), #eadbc0;
+    background-size:
+      100% 1.45rem,
+      auto,
+      auto;
+    border: 1px solid rgba(89, 60, 38, 0.38);
+    border-left: 0.32rem solid #9d7650;
+    border-radius: 0.12rem 0.3rem 0.3rem 0.12rem;
     box-shadow:
-      0 8px 28px rgba(62, 42, 30, 0.22),
-      0 0 0 1px rgba(196, 168, 130, 0.3);
+      0 0.85rem 1.8rem rgba(5, 3, 2, 0.27),
+      inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    transform: rotate(var(--grid-item-settled-rotation, 0deg));
   }
 
-  /* ===== Flip Animation — GPU-friendly (transform + opacity only) ===== */
-
-  /* ---- From-left: page turns from its left edge (desktop next, mobile) ---- */
-  .flip-out--from-left {
-    animation: flip-out-from-left var(--flip-duration) cubic-bezier(0.4, 0, 0.6, 1) forwards;
-    transform-origin: left center;
-    z-index: 5;
+  .dates-grid > :global(.grid-quote)::before {
+    content: '“';
+    position: absolute;
+    top: -0.4rem;
+    right: 0.45rem;
+    color: rgba(110, 72, 42, 0.16);
+    font-family: var(--font-family-display, Georgia, serif);
+    font-size: clamp(4rem, 7vw, 6rem);
+    line-height: 1;
     pointer-events: none;
   }
 
-  .flip-in--from-left {
-    animation: flip-in-from-left var(--flip-duration) cubic-bezier(0.4, 0, 0.2, 1) forwards;
-    transform-origin: left center;
-    z-index: 5;
+  .dates-grid > :global(.grid-quote p) {
+    position: relative;
+    z-index: 1;
+    margin: 0;
+    font-family: var(--font-family-display, Georgia, serif);
+    font-size: clamp(1rem, 1.55vw, 1.3rem);
+    font-style: italic;
+    font-weight: 700;
+    line-height: 1.35;
+    text-wrap: balance;
   }
 
-  /* ---- From-right: page turns from its right edge (desktop prev) ---- */
-  .flip-out--from-right {
-    animation: flip-out-from-right var(--flip-duration) cubic-bezier(0.4, 0, 0.6, 1) forwards;
-    transform-origin: right center;
-    z-index: 5;
-    pointer-events: none;
+  .dates-grid > :global(.grid-quote footer) {
+    color: #72563d;
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
   }
 
-  .flip-in--from-right {
-    animation: flip-in-from-right var(--flip-duration) cubic-bezier(0.4, 0, 0.2, 1) forwards;
-    transform-origin: right center;
-    z-index: 5;
+  .grid-archive.is-grid-enhanced
+    .dates-grid
+    > :global(.is-grid-batch-revealed) {
+    animation: grid-batch-reveal 560ms cubic-bezier(0.2, 0.72, 0.2, 1) both;
+    animation-delay: var(--grid-wave-delay, 0ms);
   }
 
-  @keyframes flip-out-from-left {
-    0% {
-      transform: rotateY(0deg) translateX(0);
+  .grid-archive.is-grid-enhanced
+    .dates-grid
+    > :global(.is-grid-item-measuring) {
+    visibility: hidden;
+  }
+
+  @keyframes grid-batch-reveal {
+    from {
+      opacity: 0;
+      translate: 0 1.4rem;
+    }
+
+    to {
       opacity: 1;
-    }
-    100% {
-      transform: rotateY(-82deg) translateX(-16px);
-      opacity: 0.12;
+      translate: 0 0;
     }
   }
 
-  @keyframes flip-in-from-left {
-    0% {
-      transform: rotateY(82deg) translateX(16px);
-      opacity: 0.12;
-    }
-    100% {
-      transform: rotateY(0deg) translateX(0);
-      opacity: 1;
-    }
-  }
-
-  @keyframes flip-out-from-right {
-    0% {
-      transform: rotateY(0deg) translateX(0);
-      opacity: 1;
-    }
-    100% {
-      transform: rotateY(82deg) translateX(16px);
-      opacity: 0.12;
-    }
-  }
-
-  @keyframes flip-in-from-right {
-    0% {
-      transform: rotateY(-82deg) translateX(-16px);
-      opacity: 0.12;
-    }
-    100% {
-      transform: rotateY(0deg) translateX(0);
-      opacity: 1;
-    }
-  }
-
-  /* ===== Book Navigation ===== */
-  .book-view__nav {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 2rem;
-    padding: 1rem 0 2rem;
-  }
-
-  .book-view__nav-btn {
-    background: rgba(196, 168, 130, 0.1);
-    border: 1px solid rgba(196, 168, 130, 0.25);
-    color: #c4a882;
-    padding: 0.55rem 1.5rem;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition:
-      background 0.2s,
-      border-color 0.2s,
-      color 0.2s;
-  }
-
-  .book-view__nav-btn:hover:not(:disabled) {
-    background: rgba(196, 168, 130, 0.2);
-    border-color: #c4a882;
-    color: #e8dcc8;
-  }
-
-  .book-view__nav-btn:disabled {
-    opacity: 0.35;
-    cursor: not-allowed;
-  }
-
-  .book-view__indicator {
-    color: #c4a882;
-    font-size: 0.9rem;
-    font-weight: 500;
-    min-width: 120px;
+  .grid-feed__status {
+    display: grid;
+    justify-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 0.25rem 0.35rem;
     text-align: center;
   }
 
-  /* ===== Mobile: single page, spiral on LEFT ===== */
-  @media (max-width: 768px) {
-    .book-page--right {
-      display: none;
-    }
+  .grid-feed__status[hidden],
+  .grid-feed__sentinel[hidden],
+  .grid-feed__end[hidden] {
+    display: none;
+  }
 
-    /* Spiral moves to the left */
-    .book-spiral {
-      order: -1;
-    }
+  .grid-feed__count {
+    margin: 0;
+    color: #d9c19c;
+    font-size: 0.72rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
 
-    .book-page--left {
-      /* On mobile: spiral on left → irregular right (free) edge */
-      border-top-left-radius: 1px;
-      border-top-right-radius: 6px;
-      border-bottom-right-radius: 4px;
-      border-bottom-left-radius: 2px;
-      box-shadow:
-        inset 6px 0 16px rgba(0, 0, 0, 0.1),
-        0 0 0 1px rgba(0, 0, 0, 0.04);
-    }
+  .grid-feed__sentinel {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-height: 2.25rem;
+    color: #b99d76;
+    font-family: var(--font-family-display, Georgia, serif);
+    font-size: 0.76rem;
+    font-style: italic;
+  }
 
-    .book-page--left::after {
-      left: 0;
-      right: auto;
-      background: linear-gradient(to right, rgba(0, 0, 0, 0.15), transparent);
-    }
+  .grid-feed__loader {
+    width: 0.48rem;
+    aspect-ratio: 1;
+    background: #d2aa70;
+    border-radius: 50%;
+    box-shadow: 0 0 0 0 rgba(210, 170, 112, 0.28);
+    animation: grid-feed-breathe 1.4s ease-out infinite;
+  }
 
-    .book-page {
-      padding: 1.5rem 1.5rem 1.5rem 2.25rem;
-      min-height: 400px;
-    }
-
-    .book-page__cards {
-      gap: 1rem;
-    }
-
-    .book-view__nav {
-      gap: 1rem;
-    }
-
-    .book-view__nav-btn {
-      padding: 0.45rem 1rem;
-      font-size: 0.8rem;
-    }
-
-    .book-view__indicator {
-      font-size: 0.8rem;
-      min-width: auto;
+  @keyframes grid-feed-breathe {
+    70%,
+    100% {
+      box-shadow: 0 0 0 0.6rem rgba(210, 170, 112, 0);
     }
   }
 
-  @media (max-width: 480px) {
-    .dashboard {
-      padding: 1rem;
+  .grid-feed__end {
+    max-width: 38rem;
+    margin: 0.2rem 0 0;
+    padding-top: 0.85rem;
+    color: #e3cba7;
+    border-top: 1px solid rgba(225, 196, 151, 0.24);
+    font-family: var(--font-family-display, Georgia, serif);
+    font-size: clamp(0.9rem, 1.4vw, 1.05rem);
+    font-style: italic;
+    line-height: 1.5;
+    text-wrap: balance;
+  }
+
+  /* ===== El Álbum de Sobremesa ===== */
+  .book-view {
+    --album-gutter: clamp(1.75rem, 3.8vw, 2.65rem);
+    --album-leaf-lift: 2.5rem;
+    --album-mobile-gutter: clamp(1.65rem, 8vw, 2.35rem);
+    --album-ring-lift: 4rem;
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+    perspective: 2200px;
+  }
+
+  .album-story {
+    position: relative;
+    height: 210vh;
+    height: 210svh;
+    height: 210dvh;
+    min-height: 100vh;
+    min-height: 100svh;
+    min-height: 100dvh;
+  }
+
+  .album-story__scene {
+    --story-progress: 0;
+    --story-light-x: 38%;
+    --album-scale: 0.68;
+    --album-shift-y: 10dvh;
+    --album-depth: -8rem;
+    --album-rotate-x: 17deg;
+    --album-rotate-z: -2.2deg;
+    --shadow-opacity: 0.92;
+    --shadow-scale: 1.16;
+    --shadow-blur: 25px;
+    --paper-brightness: 1;
+    --paper-sepia: 0;
+    --controls-opacity: 0.68;
+    --controls-y: 0.45rem;
+    --folio-opacity: 0.58;
+    --opening-opacity: 1;
+    --opening-y: 0rem;
+    --closing-opacity: 0;
+    --closing-y: 3.2rem;
+    --phrase-opacity: 1;
+    --album-quote-opacity: 0;
+    --album-quote-y: 0.35rem;
+    --album-quote-fade-duration: 420ms;
+    position: sticky;
+    top: 0;
+    display: grid;
+    align-items: center;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100vh;
+    height: 100svh;
+    height: 100dvh;
+    min-width: 0;
+    overflow: clip;
+    padding: max(1rem, env(safe-area-inset-top)) 4.8rem max(0.5rem, env(safe-area-inset-bottom))
+      13.5rem;
+    isolation: isolate;
+  }
+
+  .album-story__scene::before {
+    content: '';
+    position: absolute;
+    z-index: 0;
+    inset: 0;
+    background:
+      radial-gradient(
+        circle at var(--story-light-x) 42%,
+        rgba(216, 177, 122, 0.095),
+        transparent 34%
+      ),
+      linear-gradient(180deg, rgba(255, 239, 208, 0.018), transparent 28% 76%, rgba(5, 3, 2, 0.18));
+    pointer-events: none;
+  }
+
+  .album-story__scene::after {
+    content: '';
+    position: absolute;
+    z-index: 0;
+    inset: 12% 5% 10% 12%;
+    opacity: 0.42;
+    background: radial-gradient(ellipse at center, rgba(6, 3, 2, 0.32), transparent 68%);
+    filter: blur(2.5rem);
+    pointer-events: none;
+  }
+
+  .album-story__rail {
+    position: absolute;
+    z-index: 90;
+    top: 50%;
+    right: 0.55rem;
+    display: grid;
+    grid-template-columns: 0.75rem minmax(0, 1fr);
+    grid-template-rows: auto 10.5rem auto;
+    gap: 0.7rem 0.65rem;
+    width: 3.65rem;
+    color: #e4cda8;
+    font-size: 0.58rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+
+  .album-story__rail-count {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: baseline;
+    gap: 0.26rem;
+    color: #f2dec0;
+    font-family: var(--font-family-display, Georgia, serif);
+    font-size: 0.72rem;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.08em;
+  }
+
+  .album-story__rail-count span:last-child {
+    color: #9f8768;
+    font-size: 0.52rem;
+  }
+
+  .album-story__rail-line {
+    position: relative;
+    grid-column: 1;
+    grid-row: 2;
+    width: 1px;
+    height: 100%;
+    margin-inline: auto;
+    overflow: hidden;
+    background: rgba(224, 194, 151, 0.24);
+  }
+
+  .album-story__rail-fill {
+    position: absolute;
+    inset: 0;
+    display: block;
+    background: linear-gradient(#e0bb7c, #f5dfb9);
+    box-shadow: 0 0 0.65rem rgba(226, 179, 105, 0.45);
+    transform: scaleY(var(--story-progress));
+    transform-origin: top;
+  }
+
+  .album-story__rail-acts {
+    grid-column: 2;
+    grid-row: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    color: #8f785d;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .album-story__rail-acts span {
+    position: relative;
+    transition:
+      color 180ms ease,
+      transform 180ms ease;
+  }
+
+  .album-story__rail-acts span::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: -0.68rem;
+    width: 0.35rem;
+    height: 1px;
+    opacity: 0;
+    background: currentColor;
+    transform: translateY(-50%);
+  }
+
+  .album-story__rail-acts span.is-active {
+    color: #f4dfbd;
+    transform: translateX(0.14rem);
+  }
+
+  .album-story__rail-acts span.is-active::before {
+    opacity: 1;
+  }
+
+  .album-story__rail p {
+    grid-column: 1 / -1;
+    width: 8.5rem;
+    margin: 0;
+    color: #d5bd98;
+    font-family: var(--font-family-display, Georgia, serif);
+    font-size: 0.68rem;
+    font-style: italic;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    line-height: 1.25;
+    text-transform: none;
+    transform: translateX(calc(-100% + 3.65rem));
+  }
+
+  .album-story__final-note {
+    position: absolute;
+    z-index: 2;
+    top: max(4.65rem, calc(env(safe-area-inset-top) + 4.25rem));
+    left: max(1rem, calc(env(safe-area-inset-left) + 0.75rem));
+    width: min(20rem, calc(100% - 7.5rem));
+    margin: 0;
+    color: #f3e8d6;
+    font-family: var(--font-family-display, Georgia, serif);
+    font-size: clamp(0.98rem, 1.65vw, 1.35rem);
+    font-style: normal;
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1.15;
+    text-wrap: balance;
+    visibility: hidden;
+    opacity: var(--album-quote-opacity);
+    transform: translate3d(0, var(--album-quote-y), 0);
+    transform-origin: top left;
+    transition:
+      opacity var(--album-quote-fade-duration) ease,
+      transform var(--album-quote-fade-duration) ease;
+    pointer-events: none;
+    will-change: opacity, transform;
+  }
+
+  .album-story__final-note.is-quote-active {
+    visibility: visible;
+  }
+
+  .album-story__final-note::after {
+    content: '';
+    display: inline-block;
+    width: 0.075em;
+    height: 0.94em;
+    margin-left: 0.18em;
+    vertical-align: -0.08em;
+    opacity: 0;
+    background: currentColor;
+  }
+
+  .album-story__final-note.is-quote-active::after {
+    opacity: 0.72;
+    animation: album-quote-cursor 1.05s steps(1, end) infinite;
+  }
+
+  .album-story__final-note.is-quote-fading::after {
+    opacity: 0;
+    animation: none;
+  }
+
+  @keyframes album-quote-cursor {
+    0%,
+    48% {
+      opacity: 0.72;
     }
 
-    .dashboard__header-top {
+    49%,
+    100% {
+      opacity: 0.08;
+    }
+  }
+
+  .album-story__phrases {
+    position: absolute;
+    z-index: 0;
+    inset: 0;
+    opacity: var(--phrase-opacity);
+    pointer-events: none;
+  }
+
+  .album-story__phrase {
+    position: absolute;
+    max-width: 19rem;
+    margin: 0;
+    color: rgba(232, 211, 177, 0.72);
+    font-family: var(--font-family-display, Georgia, serif);
+    font-size: clamp(0.72rem, 1.15vw, 0.96rem);
+    font-style: italic;
+    letter-spacing: 0.012em;
+    line-height: 1.35;
+    text-wrap: balance;
+    transform: translate3d(var(--phrase-x, 0), var(--phrase-y, 0), 0);
+  }
+
+  .album-story__phrase::before {
+    content: '—';
+    margin-right: 0.38rem;
+    color: rgba(194, 158, 105, 0.62);
+  }
+
+  .album-story__phrase--one {
+    top: 7.5%;
+    left: 46%;
+  }
+
+  .album-story__phrase--two {
+    top: 22%;
+    right: 5.5rem;
+    max-width: 13rem;
+    text-align: right;
+  }
+
+  .album-story__phrase--three {
+    bottom: 6%;
+    left: 14.5rem;
+    max-width: 18rem;
+  }
+
+  .album-story__phrase--four {
+    right: 5.5rem;
+    bottom: 25%;
+    max-width: 13rem;
+    text-align: right;
+  }
+
+  .album-story__annotation {
+    position: absolute;
+    z-index: 0;
+    max-width: 16rem;
+    margin: 0;
+    color: rgba(226, 205, 172, 0.8);
+    font-family: var(--font-family-display, Georgia, serif);
+    font-size: clamp(0.7rem, 1vw, 0.84rem);
+    font-style: italic;
+    letter-spacing: 0.02em;
+    line-height: 1.4;
+    pointer-events: none;
+  }
+
+  .album-story__annotation span {
+    display: block;
+    margin-bottom: 0.2rem;
+    color: #a98e69;
+    font-family: inherit;
+    font-size: 0.52rem;
+    font-style: normal;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .album-story__annotation--opening {
+    top: 8%;
+    left: 14.5rem;
+    opacity: var(--opening-opacity);
+    transform: translate3d(0, var(--opening-y), 0);
+  }
+
+  .album-story__annotation--closing {
+    right: 5.25rem;
+    bottom: 7%;
+    opacity: var(--closing-opacity);
+    text-align: right;
+    transform: translate3d(0, var(--closing-y), 0);
+  }
+
+  .book-view[data-story-enabled='false'] .album-story {
+    height: auto;
+    min-height: 0;
+  }
+
+  .book-view[data-story-enabled='false'] .album-story__scene {
+    position: relative;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+    padding: clamp(0.5rem, 2vw, 1.25rem) 0 2rem;
+  }
+
+  .book-view[data-story-enabled='false'] .album-story__rail,
+  .book-view[data-story-enabled='false'] .album-story__annotation,
+  .book-view[data-story-enabled='false'] .album-story__final-note {
+    display: none;
+  }
+
+  .book-view[data-story-enabled='false'] .album-story__phrases {
+    position: relative;
+    inset: auto;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem 1.25rem;
+    width: min(100%, 58rem);
+    margin: 0 auto 1rem;
+    padding-inline: clamp(0.5rem, 2vw, 1.25rem);
+    opacity: 1;
+  }
+
+  .book-view[data-story-enabled='false'] .album-story__phrase {
+    position: relative;
+    inset: auto;
+    max-width: none;
+    color: rgba(232, 211, 177, 0.76);
+    text-align: left;
+    transform: none;
+  }
+
+  .book-view[data-story-enabled='false'] .album-object {
+    transform: rotateX(1.15deg);
+    will-change: auto;
+  }
+
+  .book-view[data-story-enabled='false'] .album-object::after {
+    display: none;
+  }
+
+  .book-view[data-story-enabled='false'] .album-stage__cast-shadow {
+    opacity: 0.72;
+    filter: blur(15px);
+    transform: translateY(28%) scaleX(0.96);
+  }
+
+  .book-view[data-story-enabled='false'] .album-leaf,
+  .book-view[data-story-enabled='false'] #album-motion-host :global(.album-turn__face) {
+    filter: none;
+  }
+
+  .book-view[data-story-enabled='false'] .album-controls,
+  .book-view[data-story-enabled='false'] .album-object :global(.album-leaf__folio) {
+    opacity: 1;
+    transform: none;
+  }
+
+  .album-stage {
+    position: relative;
+    z-index: 1;
+    width: min(100%, 74rem);
+    min-width: 0;
+    margin: 0 auto;
+    padding: clamp(0.3rem, 1vw, 0.75rem);
+    perspective: 2200px;
+    isolation: isolate;
+    touch-action: pan-y;
+    -webkit-user-select: none;
+    user-select: none;
+    cursor: grab;
+  }
+
+  .album-stage :global(*) {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .album-stage :global(img),
+  .album-stage :global(svg) {
+    -webkit-user-drag: none;
+  }
+
+  .album-stage :global(button),
+  .album-stage :global(a),
+  .album-stage :global(select),
+  .album-stage :global(label),
+  .album-stage :global([role='button']),
+  .album-stage :global([role='link']) {
+    cursor: pointer;
+  }
+
+  .album-stage :global(input),
+  .album-stage :global(textarea),
+  .album-stage :global([contenteditable]:not([contenteditable='false'])) {
+    cursor: text;
+  }
+
+  .album-stage.is-pointer-dragging,
+  .album-stage.is-pointer-dragging :global(*) {
+    cursor: grabbing;
+  }
+
+  .album-stage__cast-shadow {
+    position: absolute;
+    z-index: -1;
+    right: 4%;
+    bottom: -0.75rem;
+    left: 4%;
+    height: 4.5rem;
+    background: radial-gradient(ellipse, rgba(5, 3, 2, 0.72), transparent 70%);
+    filter: blur(var(--shadow-blur));
+    opacity: var(--shadow-opacity);
+    transform: translateY(28%) scaleX(var(--shadow-scale));
+    pointer-events: none;
+    will-change: transform, opacity, filter;
+  }
+
+  .album-object {
+    --date-card-aspect-ratio: 5 / 6;
+    --date-card-background: #eee1c8;
+    --date-card-border: 1px solid rgba(91, 61, 38, 0.42);
+    --date-card-radius: 2px;
+    --date-card-shadow: 0.25rem 0.4rem 0.7rem rgba(62, 38, 21, 0.22);
+    --date-card-overflow: visible;
+    --date-card-media-background:
+      linear-gradient(145deg, rgba(255, 255, 255, 0.2), transparent 52%),
+      radial-gradient(circle at 58% 32%, rgba(119, 79, 48, 0.11), transparent 48%), #d8c3a2;
+    --date-card-media-background-size: auto;
+    --date-card-free-media-background:
+      radial-gradient(circle at center, rgba(143, 91, 47, 0.2), transparent 62%), #dfcfb4;
+    --date-card-info-background: #f2e5cc;
+    --date-card-info-border: 1px solid rgba(91, 61, 38, 0.24);
+    --date-card-info-gap: 0.28rem;
+    --date-card-info-padding: clamp(0.5rem, 1.2vw, 0.72rem);
+    --date-card-number-color: #6d4c32;
+    --date-card-number-size: clamp(0.5rem, 0.75vw, 0.61rem);
+    --date-card-title-color: #352218;
+    --date-card-title-size: clamp(0.72rem, 1.15vw, 0.95rem);
+    --date-card-badge-size: clamp(0.52rem, 0.75vw, 0.61rem);
+    --date-card-badge-padding: 0.2rem 0.38rem;
+    --date-card-badge-radius: 1px;
+    --date-card-pending-background: #d8c29d;
+    --date-card-pending-color: #4d321f;
+    --date-card-completed-background: #c3c6a7;
+    --date-card-completed-badge-color: #2d402f;
+    --date-card-locked-color: #5f4735;
+    --date-card-completed-color: #7a3f2b;
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+    padding: clamp(0.85rem, 2vw, 1.45rem);
+    color: #39261a;
+    background:
+      radial-gradient(circle at 12% 8%, rgba(255, 233, 195, 0.09), transparent 18%),
+      radial-gradient(circle at 88% 92%, rgba(10, 5, 2, 0.28), transparent 28%),
+      repeating-linear-gradient(
+        102deg,
+        rgba(255, 255, 255, 0.025) 0,
+        rgba(255, 255, 255, 0.025) 1px,
+        transparent 1px,
+        transparent 8px
+      ),
+      #3a2419;
+    border: 1px solid #25140d;
+    border-radius: 0.7rem 0.45rem 0.8rem 0.5rem;
+    box-shadow:
+      0 1.7rem 3.5rem rgba(5, 3, 2, 0.48),
+      0 0.35rem 0.75rem rgba(5, 3, 2, 0.42),
+      inset 0 1px 0 rgba(255, 235, 207, 0.11),
+      inset 0 0 0 0.32rem rgba(27, 14, 9, 0.2);
+    transform: translate3d(0, var(--album-shift-y), var(--album-depth))
+      rotateX(var(--album-rotate-x)) rotateZ(var(--album-rotate-z)) scale(var(--album-scale));
+    transform-origin: center 50%;
+    transform-style: preserve-3d;
+    will-change: transform;
+  }
+
+  .album-object::after {
+    content: '';
+    position: absolute;
+    z-index: 75;
+    inset: 0;
+    overflow: hidden;
+    opacity: var(--album-light-opacity, 0.08);
+    background: linear-gradient(
+      108deg,
+      transparent 27%,
+      rgba(255, 235, 197, 0.05) 40%,
+      rgba(255, 224, 172, 0.42) 50%,
+      rgba(255, 244, 219, 0.08) 60%,
+      transparent 73%
+    );
+    border-radius: inherit;
+    mix-blend-mode: soft-light;
+    transform: translateX(var(--album-light-shift, -72%));
+    pointer-events: none;
+  }
+
+  .album-cover__board,
+  .album-cover__stitching,
+  .album-cover__corners,
+  .album-cover__plaque,
+  .album-paper-block {
+    position: absolute;
+    pointer-events: none;
+  }
+
+  .album-cover__board {
+    z-index: 0;
+    inset: 0.38rem;
+    border: 1px solid rgba(205, 163, 111, 0.22);
+    border-radius: 0.48rem 0.32rem 0.6rem 0.35rem;
+    box-shadow:
+      inset 0 0 0 0.18rem rgba(17, 8, 5, 0.25),
+      inset 0.45rem 0.6rem 1rem rgba(255, 225, 183, 0.025);
+  }
+
+  .album-cover__stitching {
+    z-index: 8;
+    inset: 0.68rem;
+    border: 1px dashed rgba(202, 155, 98, 0.64);
+    border-radius: 0.38rem 0.24rem 0.5rem 0.28rem;
+  }
+
+  .album-cover__corners {
+    z-index: 9;
+    inset: 0;
+  }
+
+  .album-cover__corner {
+    position: absolute;
+    width: 1.7rem;
+    height: 1.7rem;
+    opacity: 0.72;
+    background: radial-gradient(circle at center, rgba(211, 166, 107, 0.2), transparent 67%);
+    border-color: rgba(218, 178, 122, 0.33);
+  }
+
+  .album-cover__corner--1 {
+    top: 0.22rem;
+    left: 0.25rem;
+    border-top: 1px solid;
+    border-left: 1px solid;
+    border-radius: 0.55rem 0 0 0;
+  }
+
+  .album-cover__corner--2 {
+    top: 0.22rem;
+    right: 0.25rem;
+    border-top: 1px solid;
+    border-right: 1px solid;
+    border-radius: 0 0.4rem 0 0;
+  }
+
+  .album-cover__corner--3 {
+    right: 0.25rem;
+    bottom: 0.22rem;
+    border-right: 1px solid;
+    border-bottom: 1px solid;
+    border-radius: 0 0 0.6rem 0;
+  }
+
+  .album-cover__corner--4 {
+    bottom: 0.22rem;
+    left: 0.25rem;
+    border-bottom: 1px solid;
+    border-left: 1px solid;
+    border-radius: 0 0 0 0.4rem;
+  }
+
+  .album-cover__plaque {
+    z-index: 10;
+    top: 0.28rem;
+    left: 50%;
+    min-width: 3.5rem;
+    padding: 0.24rem 0.7rem 0.2rem;
+    color: rgba(226, 187, 128, 0.72);
+    background: linear-gradient(145deg, rgba(255, 225, 177, 0.055), rgba(15, 7, 4, 0.2)), #3a2419;
+    border: 1px solid rgba(205, 158, 96, 0.35);
+    border-radius: 0.18rem;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 226, 183, 0.08),
+      inset 0 -1px 0 rgba(13, 6, 3, 0.7),
+      0 0.18rem 0.3rem rgba(9, 4, 2, 0.3);
+    font-family: var(--font-family-display, Georgia, serif);
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    line-height: 1;
+    text-align: center;
+    text-transform: uppercase;
+    text-shadow:
+      0 1px 0 rgba(8, 4, 2, 0.85),
+      0 -1px 0 rgba(255, 224, 174, 0.08);
+    transform: translate3d(-50%, 0, 0.35rem);
+  }
+
+  .album-paper-block {
+    z-index: 1;
+    inset: 1.2rem 1.35rem 5.15rem;
+  }
+
+  .album-paper-block__outside,
+  .album-paper-block__bottom {
+    position: absolute;
+    background:
+      linear-gradient(90deg, rgba(255, 250, 231, 0.42), transparent 28%, rgba(90, 59, 35, 0.16)),
+      repeating-linear-gradient(
+        to bottom,
+        #eadfc8 0,
+        #eadfc8 1px,
+        #c9b48e 1px,
+        #c9b48e 2px,
+        #f2e7d1 2px,
+        #f2e7d1 4px,
+        #bda681 4px,
+        #e4d5b9 5px,
+        #e4d5b9 7px
+      );
+    box-shadow: 0 0.25rem 0.45rem rgba(25, 13, 8, 0.3);
+  }
+
+  .album-paper-block__outside {
+    top: 0.4rem;
+    bottom: -0.45rem;
+    width: 0.55rem;
+  }
+
+  .album-paper-block__outside--left {
+    left: -0.48rem;
+    transform: skewY(-1.5deg);
+  }
+
+  .album-paper-block__outside--right {
+    right: -0.48rem;
+    transform: skewY(1.2deg);
+  }
+
+  .album-paper-block__bottom {
+    right: 0;
+    bottom: -0.58rem;
+    left: 0;
+    height: 0.75rem;
+    border-radius: 0 0 0.18rem 0.18rem;
+  }
+
+  .album-spread {
+    position: relative;
+    z-index: 3;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--album-gutter) minmax(0, 1fr);
+    width: 100%;
+    min-width: 0;
+    min-height: clamp(28rem, 52vw, 40rem);
+    min-height: clamp(28rem, min(52vw, calc(100dvh - 7.5rem)), 40rem);
+    transform-style: preserve-3d;
+  }
+
+  .album-page-stack {
+    position: absolute;
+    z-index: 1;
+    top: 0.24rem;
+    bottom: -0.42rem;
+    background:
+      linear-gradient(90deg, rgba(255, 251, 235, 0.34), transparent 22%, rgba(91, 60, 36, 0.14)),
+      repeating-linear-gradient(
+        to bottom,
+        #e9ddc5 0,
+        #e9ddc5 1px,
+        #c6b087 1px,
+        #c6b087 2px,
+        #f2e7d1 2px,
+        #f2e7d1 4px,
+        #bca57f 4px,
+        #e5d6ba 5px,
+        #e5d6ba 7px
+      );
+    border: 1px solid rgba(74, 48, 31, 0.24);
+    box-shadow: 0 0.42rem 0.7rem rgba(35, 20, 12, 0.28);
+  }
+
+  .album-page-stack--left {
+    right: calc(50% + var(--album-gutter) / 2);
+    left: 0.16rem;
+    border-radius: 0.32rem 0.08rem 0.14rem 0.38rem;
+    transform: rotateZ(-0.08deg);
+  }
+
+  .album-page-stack--right {
+    right: 0.16rem;
+    left: calc(50% + var(--album-gutter) / 2);
+    border-radius: 0.08rem 0.34rem 0.38rem 0.12rem;
+    transform: rotateZ(0.1deg);
+  }
+
+  .album-leaf,
+  #album-motion-host :global(.album-turn__face) {
+    min-width: 0;
+    color: #38271c;
+    background:
+      radial-gradient(ellipse at 12% 8%, rgba(255, 255, 255, 0.38), transparent 24%),
+      radial-gradient(circle at 82% 68%, rgba(111, 75, 42, 0.055) 0 1px, transparent 1.5px),
+      repeating-linear-gradient(
+        7deg,
+        rgba(105, 75, 47, 0.028) 0,
+        rgba(105, 75, 47, 0.028) 1px,
+        transparent 1px,
+        transparent 11px
+      ),
+      #eee3cd;
+    border: 1px solid rgba(87, 59, 38, 0.3);
+  }
+
+  .album-leaf {
+    position: relative;
+    z-index: 4;
+    display: grid;
+    min-height: 100%;
+    filter: brightness(var(--paper-brightness)) sepia(var(--paper-sepia));
+  }
+
+  .album-leaf::before,
+  #album-motion-host :global(.album-turn__face)::before {
+    content: '';
+    position: absolute;
+    z-index: 0;
+    inset: 0;
+    opacity: 0.42;
+    background:
+      radial-gradient(circle at 19% 27%, rgba(92, 61, 38, 0.11) 0 0.7px, transparent 1px),
+      radial-gradient(circle at 73% 54%, rgba(92, 61, 38, 0.08) 0 0.6px, transparent 1px);
+    background-size:
+      17px 19px,
+      23px 21px;
+    pointer-events: none;
+  }
+
+  .album-leaf--left {
+    grid-column: 1;
+    border-radius: 0.34rem 0.05rem 0.14rem 0.42rem;
+    box-shadow:
+      inset -1.2rem 0 1.5rem -1.15rem rgba(42, 24, 14, 0.72),
+      inset 0.15rem 0 0.5rem rgba(255, 255, 255, 0.24),
+      0 0.1rem 0.18rem rgba(40, 23, 13, 0.25);
+  }
+
+  .album-leaf--right {
+    grid-column: 3;
+    border-radius: 0.05rem 0.38rem 0.42rem 0.12rem;
+    box-shadow:
+      inset 1.2rem 0 1.5rem -1.15rem rgba(42, 24, 14, 0.72),
+      inset -0.15rem 0 0.5rem rgba(255, 255, 255, 0.24),
+      0 0.1rem 0.18rem rgba(40, 23, 13, 0.25);
+  }
+
+  .album-leaf__content,
+  #album-motion-host :global(.album-turn__face) {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: clamp(0.65rem, 1.4vw, 1rem);
+    min-width: 0;
+    min-height: 100%;
+    padding: clamp(1rem, 2.1vw, 1.65rem) clamp(0.9rem, 2.2vw, 1.7rem) clamp(0.8rem, 1.8vw, 1.3rem);
+  }
+
+  .album-object :global(.album-leaf__header),
+  .album-object :global(.album-leaf__footer) {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    min-width: 0;
+    color: #6a5039;
+    font-size: clamp(0.48rem, 0.75vw, 0.62rem);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    line-height: 1.3;
+    text-transform: uppercase;
+  }
+
+  .album-object :global(.album-leaf__header) {
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(105, 75, 47, 0.28);
+  }
+
+  .album-object :global(.album-leaf__header span:last-child) {
+    color: #81694f;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+  }
+
+  .album-object :global(.album-leaf__cards) {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: center;
+    gap: clamp(0.72rem, 1.65vw, 1.18rem);
+    min-width: 0;
+  }
+
+  .album-object :global(.album-leaf__cards .date-card) {
+    min-width: 0;
+  }
+
+  .album-object :global(.album-leaf__cards .date-card)::before {
+    content: '';
+    position: absolute;
+    z-index: 4;
+    top: -0.32rem;
+    left: 50%;
+    width: 34%;
+    height: 0.7rem;
+    background: rgba(218, 198, 158, 0.78);
+    border-right: 1px solid rgba(102, 76, 48, 0.17);
+    border-left: 1px solid rgba(102, 76, 48, 0.17);
+    box-shadow: 0 1px 2px rgba(69, 45, 26, 0.12);
+    transform: translateX(-50%) rotate(-0.8deg);
+    pointer-events: none;
+  }
+
+  .album-object :global(.album-leaf__cards .date-card)::after {
+    content: '';
+    position: absolute;
+    z-index: 3;
+    inset: -0.15rem;
+    background:
+      linear-gradient(135deg, #8d6b43 0 0.42rem, transparent 0.44rem) top left,
+      linear-gradient(225deg, #8d6b43 0 0.42rem, transparent 0.44rem) top right,
+      linear-gradient(45deg, #8d6b43 0 0.42rem, transparent 0.44rem) bottom left,
+      linear-gradient(315deg, #8d6b43 0 0.42rem, transparent 0.44rem) bottom right;
+    background-repeat: no-repeat;
+    background-size: 0.75rem 0.75rem;
+    opacity: 0.42;
+    pointer-events: none;
+  }
+
+  .album-object :global(.album-leaf__cards .date-card:nth-child(1)) {
+    transform: rotate(-1.25deg);
+  }
+
+  .album-object :global(.album-leaf__cards .date-card:nth-child(2)) {
+    transform: rotate(0.85deg);
+  }
+
+  .album-object :global(.album-leaf__cards .date-card:nth-child(3)) {
+    transform: rotate(0.55deg);
+  }
+
+  .album-object :global(.album-leaf__cards .date-card:nth-child(4)) {
+    transform: rotate(-0.8deg);
+  }
+
+  .album-object :global(.date-card__media) {
+    margin: clamp(0.28rem, 0.7vw, 0.48rem);
+    margin-bottom: 0;
+    border: 1px solid rgba(87, 58, 36, 0.18);
+    box-shadow: inset 0 0 1.2rem rgba(68, 42, 24, 0.08);
+  }
+
+  .album-object :global(.date-card__icon) {
+    width: clamp(2.15rem, 4vw, 3.35rem);
+    aspect-ratio: 1;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    background: rgba(238, 222, 192, 0.42);
+    box-shadow:
+      inset 0 0 0 0.16rem rgba(97, 64, 40, 0.08),
+      inset 0.08rem 0.1rem 0.2rem rgba(255, 255, 255, 0.3),
+      0.08rem 0.1rem 0.16rem rgba(64, 38, 22, 0.16);
+    opacity: 0.9;
+  }
+
+  .album-object :global(.date-card__icon svg) {
+    width: 56%;
+    height: auto;
+    stroke-width: 1.55;
+  }
+
+  .album-object :global(.date-card__badge) {
+    border: 1px solid currentColor;
+    letter-spacing: 0.06em;
+    line-height: 1;
+    text-transform: uppercase;
+    transform: rotate(-0.8deg);
+  }
+
+  .album-object :global(.album-leaf__footer) {
+    min-height: 1.35rem;
+    padding-top: 0.38rem;
+    border-top: 1px solid rgba(105, 75, 47, 0.2);
+  }
+
+  .album-object :global(.album-leaf__annotation) {
+    overflow: hidden;
+    font-family: var(--font-family-display, Georgia, serif);
+    font-size: clamp(0.56rem, 0.85vw, 0.7rem);
+    font-style: italic;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .album-object :global(.album-leaf__folio) {
+    flex: 0 0 auto;
+    opacity: var(--folio-opacity);
+    color: #4f3828;
+    font-family: var(--font-family-display, Georgia, serif);
+    font-size: clamp(0.72rem, 1.1vw, 0.92rem);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+
+  .album-leaf--left :global(.album-leaf__folio) {
+    order: -1;
+  }
+
+  .album-leaf--left :global(.album-leaf__annotation) {
+    order: 2;
+    text-align: right;
+  }
+
+  .album-leaf__holes,
+  #album-motion-host :global(.album-turn__holes) {
+    position: absolute;
+    z-index: 12;
+    top: 3.3rem;
+    bottom: 2.35rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 0.75rem;
+    pointer-events: none;
+  }
+
+  .album-leaf--left .album-leaf__holes {
+    right: -0.38rem;
+  }
+
+  .album-leaf--right .album-leaf__holes {
+    left: -0.38rem;
+  }
+
+  #album-motion-host :global(.album-turn--next .album-turn__holes) {
+    left: -0.38rem;
+  }
+
+  #album-motion-host :global(.album-turn--prev .album-turn__holes) {
+    right: -0.38rem;
+  }
+
+  .album-leaf__holes span,
+  #album-motion-host :global(.album-turn__holes span) {
+    width: 0.72rem;
+    aspect-ratio: 1;
+    background: radial-gradient(
+      circle at 44% 40%,
+      #1b100a 0 31%,
+      #6f5136 34%,
+      #c6ad82 48%,
+      #715237 63%,
+      transparent 66%
+    );
+    border-radius: 50%;
+    box-shadow:
+      inset 0.08rem 0.1rem 0.12rem rgba(0, 0, 0, 0.6),
+      0 0.08rem 0.08rem rgba(255, 255, 255, 0.18);
+  }
+
+  .album-trough {
+    position: relative;
+    z-index: 3;
+    grid-column: 2;
+    background:
+      linear-gradient(
+        90deg,
+        rgba(20, 10, 6, 0.48),
+        rgba(91, 58, 35, 0.2) 31%,
+        rgba(15, 7, 4, 0.68) 50%,
+        rgba(91, 58, 35, 0.2) 69%,
+        rgba(20, 10, 6, 0.48)
+      ),
+      #3b261a;
+    box-shadow:
+      inset 0.42rem 0 0.8rem rgba(12, 6, 3, 0.4),
+      inset -0.42rem 0 0.8rem rgba(12, 6, 3, 0.4);
+  }
+
+  .album-rings {
+    position: absolute;
+    z-index: 70;
+    top: 3.22rem;
+    bottom: 2.25rem;
+    left: 50%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: clamp(2.7rem, 5vw, 3.4rem);
+    backface-visibility: hidden;
+    transform: translateX(-50%) translateZ(var(--album-ring-lift));
+    transform-style: preserve-3d;
+    pointer-events: none;
+  }
+
+  .album-ring {
+    display: block;
+    width: 100%;
+    height: 1.05rem;
+    border: 3px solid #7b5c29;
+    border-top-color: #d3b66c;
+    border-right-color: #a47f3b;
+    border-bottom-color: #513914;
+    border-left-color: #bea052;
+    border-radius: 999px;
+    background: transparent;
+    box-shadow:
+      inset 0 1px 1px rgba(255, 245, 197, 0.45),
+      0 0.14rem 0.16rem rgba(20, 10, 5, 0.6),
+      0 0.3rem 0.45rem rgba(20, 10, 5, 0.23);
+    transform: rotateX(52deg) rotateZ(-0.5deg);
+  }
+
+  .album-ring:nth-child(3n + 2) {
+    transform: rotateX(54deg) rotateZ(0.7deg);
+  }
+
+  .album-ring:nth-child(3n) {
+    filter: brightness(0.9);
+    transform: rotateX(50deg) rotateZ(-0.2deg);
+  }
+
+  .album-object :global(.album-endpaper) {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    min-height: 0;
+    padding: 2rem 1rem;
+    text-align: center;
+  }
+
+  .album-object :global(.album-endpaper)::before,
+  .album-object :global(.album-endpaper)::after {
+    content: '';
+    width: min(10rem, 70%);
+    height: 1px;
+    margin: 0.7rem 0;
+    background: linear-gradient(90deg, transparent, rgba(91, 61, 38, 0.48), transparent);
+  }
+
+  .album-object :global(.album-endpaper__ornament) {
+    color: #896735;
+    font-size: 1rem;
+  }
+
+  .album-object :global(.album-endpaper p) {
+    margin: 0.55rem 0 0.25rem;
+    color: #483124;
+    font-family: var(--font-family-display, Georgia, serif);
+    font-size: clamp(1.25rem, 3vw, 2rem);
+    font-style: italic;
+    line-height: 1.12;
+    text-wrap: balance;
+  }
+
+  .album-object :global(.album-endpaper > span:last-child) {
+    color: #765c43;
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+  }
+
+  .album-object :global(.album-leaf__footer--endpaper) {
+    justify-content: center;
+  }
+
+  #album-motion-host {
+    position: absolute;
+    z-index: 24;
+    inset: 0;
+    transform-style: preserve-3d;
+    pointer-events: none;
+  }
+
+  #album-motion-host:empty {
+    display: none;
+  }
+
+  #album-motion-host :global(.album-turn) {
+    position: absolute;
+    z-index: 25;
+    top: 0;
+    bottom: 0;
+    transform-style: preserve-3d;
+  }
+
+  #album-motion-host :global(.album-turn--next) {
+    right: 0;
+    left: calc(50% + var(--album-gutter) / 2);
+    transform-origin: left center;
+  }
+
+  #album-motion-host :global(.album-turn--prev) {
+    right: calc(50% + var(--album-gutter) / 2);
+    left: 0;
+    transform-origin: right center;
+  }
+
+  #album-motion-host :global(.album-turn__face) {
+    position: absolute;
+    inset: 0;
+    height: 100%;
+    overflow: visible;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    transform-style: preserve-3d;
+  }
+
+  #album-motion-host :global(.album-turn__face--front) {
+    box-shadow:
+      inset -0.65rem 0 1.2rem -0.9rem rgba(63, 35, 18, 0.34),
+      0 0 0.45rem rgba(39, 20, 10, 0.18);
+    transform: rotateY(0deg) translateZ(0.25px);
+  }
+
+  #album-motion-host :global(.album-turn__face--back) {
+    background:
+      linear-gradient(90deg, rgba(94, 57, 29, 0.3), transparent 26%, rgba(80, 48, 25, 0.18)),
+      radial-gradient(ellipse at 72% 18%, rgba(255, 235, 198, 0.22), transparent 38%),
+      repeating-linear-gradient(
+        8deg,
+        rgba(99, 64, 35, 0.045) 0,
+        rgba(99, 64, 35, 0.045) 1px,
+        transparent 1px,
+        transparent 10px
+      ),
+      #d8c19d;
+    box-shadow:
+      inset 1.3rem 0 1.7rem -1.2rem rgba(64, 36, 19, 0.56),
+      inset 0 0 2rem rgba(91, 55, 30, 0.14);
+    transform: rotateY(180deg) translateZ(0.25px);
+  }
+
+  #album-motion-host :global(.album-turn--next.is-turning) {
+    will-change: transform;
+    animation: album-turn-next var(--turn-duration) cubic-bezier(0.2, 0.72, 0.18, 1) forwards;
+  }
+
+  #album-motion-host :global(.album-turn--prev.is-turning) {
+    will-change: transform;
+    animation: album-turn-prev var(--turn-duration) cubic-bezier(0.2, 0.72, 0.18, 1) forwards;
+  }
+
+  @keyframes album-turn-next {
+    0% {
+      transform: rotateY(0deg) translateZ(0);
+    }
+    46% {
+      transform: rotateY(-78deg) translateZ(1.1rem);
+    }
+    70% {
+      transform: rotateY(-132deg) translateZ(0.45rem);
+    }
+    100% {
+      transform: rotateY(-180deg) translateZ(0);
+    }
+  }
+
+  @keyframes album-turn-prev {
+    0% {
+      transform: rotateY(0deg) translateZ(0);
+    }
+    46% {
+      transform: rotateY(78deg) translateZ(1.1rem);
+    }
+    70% {
+      transform: rotateY(132deg) translateZ(0.45rem);
+    }
+    100% {
+      transform: rotateY(180deg) translateZ(0);
+    }
+  }
+
+  #album-motion-host :global(.album-turn-shadow) {
+    position: absolute;
+    z-index: 23;
+    top: -0.55rem;
+    bottom: -0.7rem;
+    opacity: 0;
+    filter: blur(0.7rem);
+    pointer-events: none;
+  }
+
+  #album-motion-host :global(.album-turn-shadow--next) {
+    right: calc(50% + var(--album-gutter) / 2);
+    left: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 4%,
+      rgba(38, 20, 11, 0.1) 38%,
+      rgba(38, 20, 11, 0.46) 88%,
+      rgba(38, 20, 11, 0.28)
+    );
+    transform-origin: right center;
+  }
+
+  #album-motion-host :global(.album-turn-shadow--prev) {
+    right: 0;
+    left: calc(50% + var(--album-gutter) / 2);
+    background: linear-gradient(
+      90deg,
+      rgba(38, 20, 11, 0.28),
+      rgba(38, 20, 11, 0.46) 12%,
+      rgba(38, 20, 11, 0.1) 62%,
+      transparent 96%
+    );
+    transform-origin: left center;
+  }
+
+  #album-motion-host :global(.album-turn-shadow.is-moving) {
+    will-change: transform, opacity;
+    animation: album-travelling-shadow var(--turn-duration) cubic-bezier(0.25, 0.65, 0.25, 1) both;
+  }
+
+  @keyframes album-travelling-shadow {
+    0%,
+    100% {
+      opacity: 0;
+      transform: scaleX(0.08);
+    }
+    42% {
+      opacity: 0.72;
+      transform: scaleX(0.5);
+    }
+    68% {
+      opacity: 0.35;
+      transform: scaleX(1);
+    }
+  }
+
+  .album-controls {
+    position: relative;
+    z-index: 7;
+    display: grid;
+    grid-template-columns: minmax(7rem, 1fr) minmax(12rem, auto) minmax(7rem, 1fr);
+    align-items: center;
+    gap: clamp(0.55rem, 1.6vw, 1rem);
+    margin-top: clamp(0.85rem, 1.8vw, 1.2rem);
+    padding: 0.5rem clamp(0.45rem, 1.2vw, 0.8rem);
+    background: rgba(26, 13, 8, 0.42);
+    border: 1px solid rgba(203, 159, 101, 0.28);
+    border-radius: 0.28rem;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 235, 205, 0.05),
+      0 0.25rem 0.45rem rgba(10, 5, 3, 0.22);
+    opacity: var(--controls-opacity);
+    transform: translateY(var(--controls-y));
+  }
+
+  .album-controls__button {
+    min-width: 0;
+    min-height: 2.75rem;
+    padding: 0.58rem 0.85rem;
+    color: #ead9bd;
+    background: linear-gradient(rgba(255, 255, 255, 0.035), transparent), rgba(78, 48, 29, 0.72);
+    border: 1px solid rgba(210, 170, 112, 0.52);
+    border-radius: 0.18rem;
+    box-shadow:
+      inset 0 0 0 1px rgba(29, 15, 9, 0.4),
+      0 0.18rem 0.3rem rgba(9, 4, 2, 0.3);
+    font-family: var(--font-family-display, Georgia, serif);
+    font-size: clamp(0.76rem, 1.2vw, 0.9rem);
+    font-weight: 700;
+    letter-spacing: 0.025em;
+    text-align: center;
+    transition:
+      border-color 160ms ease,
+      background 160ms ease,
+      color 160ms ease,
+      transform 160ms ease;
+  }
+
+  .album-controls__button:first-child {
+    justify-self: start;
+  }
+
+  .album-controls__button:last-child {
+    justify-self: end;
+  }
+
+  .album-controls__button:hover:not(:disabled):not([aria-disabled='true']) {
+    color: #fff4df;
+    background: rgba(104, 66, 39, 0.78);
+    border-color: #d0aa70;
+    transform: translateY(-1px);
+  }
+
+  .album-controls__button:disabled,
+  .album-controls__button[aria-disabled='true'] {
+    color: #a28d70;
+    background: rgba(47, 29, 18, 0.58);
+    border-color: rgba(168, 132, 84, 0.28);
+    box-shadow: inset 0 0 0 1px rgba(29, 15, 9, 0.28);
+    opacity: 0.68;
+  }
+
+  .album-controls__button:focus-visible {
+    outline: 3px solid #f1cb86;
+    outline-offset: 3px;
+  }
+
+  .album-controls__indicator {
+    color: #d7bd93;
+    font-size: clamp(0.68rem, 1.1vw, 0.82rem);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.055em;
+    line-height: 1.35;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  @media (max-width: 1180px) {
+    :global(html:has(.dashboard__summary:is(.is-album-hud, .is-grid-hud))) {
+      scroll-padding-top: 5.5rem;
+    }
+
+    .dates-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .album-story__scene {
+      padding: 5.4rem 4.15rem 0.55rem 0.35rem;
+    }
+
+    .album-story__annotation--opening {
+      top: 6.2rem;
+      left: 0.75rem;
+    }
+
+    .album-story__final-note {
+      top: max(5.25rem, calc(env(safe-area-inset-top) + 4.85rem));
+      left: max(0.75rem, calc(env(safe-area-inset-left) + 0.5rem));
+      width: min(18rem, calc(100% - 6.5rem));
+    }
+
+    .album-story__annotation--closing {
+      right: 4.6rem;
+    }
+
+    .book-view[data-story-enabled='true'] .album-story__phrase--one {
+      top: 6.2rem;
+      right: 4.6rem;
+      left: auto;
+      max-width: 13rem;
+      text-align: right;
+    }
+
+    .book-view[data-story-enabled='true'] .album-story__phrase--three {
+      bottom: 1.25%;
+      left: 0.75rem;
+      max-width: 15rem;
+    }
+
+    .book-view[data-story-enabled='true']
+      .album-story__phrase:is(.album-story__phrase--two, .album-story__phrase--four) {
+      display: none;
+    }
+
+    .album-spread {
+      min-height: clamp(26rem, 52vw, 38rem);
+      min-height: clamp(26rem, min(52vw, calc(100dvh - 11rem)), 38rem);
+    }
+
+    .dashboard__summary:is(.is-album-hud, .is-grid-hud) {
+      --time-counter-value-size: 0.8rem;
+      top: max(0.5rem, env(safe-area-inset-top));
+      right: max(0.75rem, env(safe-area-inset-right));
+      left: max(0.75rem, env(safe-area-inset-left));
+      grid-template-columns: minmax(0, 1.2fr) minmax(12rem, 0.8fr);
       gap: 0.75rem;
+      width: auto;
+      max-height: none;
+      padding: 0.55rem 0.7rem;
+      transform: translate3d(0, var(--summary-mobile-y, -1.5rem), 0)
+        scale(var(--summary-scale, 0.88));
+      transform-origin: top center;
     }
 
-    .dashboard__actions {
-      gap: 0.75rem;
+    .dashboard__summary:is(.is-album-hud, .is-grid-hud)
+      .dashboard__summary-counter
+      :global(.time-counter) {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
     }
 
-    .book-page {
-      padding: 1rem 1rem 1rem 1.75rem;
-      min-height: 340px;
+    .dashboard__summary:is(.is-album-hud, .is-grid-hud) .dashboard__summary-progress {
+      padding-top: 0;
+      padding-left: 0.75rem;
+      border-top: 0;
+      border-left: 1px solid rgba(232, 220, 200, 0.18);
     }
 
-    .book-page__cards {
-      gap: 0.75rem;
+    .dashboard__main :where([id], button, a, [tabindex]) {
+      scroll-margin-top: 6rem;
+    }
+  }
+
+  @media (max-width: 900px) {
+    .dates-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .dashboard__summary {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .dashboard__summary-progress {
+      padding-top: 1.5rem;
+      padding-left: 0;
+      border-top: 1px solid rgba(232, 220, 200, 0.2);
+      border-left: none;
+    }
+
+    .album-object {
+      --date-card-info-padding: 0.48rem;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .dashboard__masthead,
+    .dashboard__toolbar {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .dashboard__summary:is(.is-album-hud, .is-grid-hud) {
+      --time-counter-gap: 0.12rem;
+      --time-counter-value-size: 0.72rem;
+      --time-counter-label-size: 0.44rem;
+      --time-counter-label-margin: 0.04rem;
+      --progress-header-margin: 0.2rem;
+      --progress-percentage-size: 0.68rem;
+      --progress-track-height: 0.28rem;
+      top: max(0.35rem, env(safe-area-inset-top));
+      right: max(0.5rem, env(safe-area-inset-right));
+      left: max(0.5rem, env(safe-area-inset-left));
+      grid-template-columns: minmax(0, 1.55fr) minmax(5.25rem, 0.45fr);
+      gap: 0.45rem;
+      padding: 0.45rem 0.5rem;
+      border-radius: 0.32rem;
+    }
+
+    .dashboard__summary:is(.is-album-hud, .is-grid-hud) .dashboard__summary-progress {
+      padding-left: 0.45rem;
+    }
+
+    .dashboard__summary:is(.is-album-hud, .is-grid-hud) :global(.progress-bar__label) {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .dashboard__summary:is(.is-album-hud, .is-grid-hud) :global(.progress-bar__header) {
+      justify-content: flex-end;
+    }
+
+    .grid-archive {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0.9rem;
+      padding: clamp(0.65rem, 3vw, 0.9rem);
+      background-size:
+        3.75rem 100%,
+        100% 3.75rem,
+        auto;
+    }
+
+    .dates-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      --grid-item-gap: 0.6rem;
+    }
+
+    .grid-archive__guide {
+      position: relative;
+      top: auto;
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto auto 1px;
+      gap: 0.22rem;
+      width: 100%;
+      padding-bottom: 0.35rem;
+    }
+
+    .grid-archive__guide-kicker,
+    .grid-archive__guide-count,
+    .grid-archive__guide-line {
+      grid-column: 1;
+    }
+
+    .grid-archive__guide-line {
+      grid-row: 3;
+      width: 100%;
+      height: 1px;
+      margin: 0;
+    }
+
+    .grid-archive__guide-fill {
+      transform: scaleX(var(--grid-progress));
+      transform-origin: left;
+    }
+
+    .album-story__scene {
+      padding: 4.85rem 2.65rem 0.4rem 0.15rem;
+    }
+
+    .album-story__rail {
+      right: 0.15rem;
+      grid-template-columns: 0.55rem minmax(0, 1fr);
+      grid-template-rows: auto 8.5rem;
+      gap: 0.45rem 0.42rem;
+      width: 2.2rem;
+    }
+
+    .album-story__rail p {
+      position: absolute;
+      top: -2.35rem;
+      right: 0;
+      width: 7.5rem;
+      font-size: 0.6rem;
+      text-align: right;
+      transform: none;
+    }
+
+    .album-story__final-note {
+      top: max(6.35rem, calc(env(safe-area-inset-top) + 5.85rem));
+      left: max(0.5rem, calc(env(safe-area-inset-left) + 0.35rem));
+      width: min(16rem, calc(100% - 3.75rem));
+      font-size: clamp(0.78rem, 3.45vw, 0.98rem);
+      line-height: 1.16;
+    }
+
+    .album-story__annotation--opening {
+      display: none;
+    }
+
+    .album-story__annotation--closing {
+      right: 2.75rem;
+      bottom: 1.25%;
+      max-width: 12rem;
+      font-size: 0.67rem;
+    }
+
+    .book-view[data-story-enabled='true'] .album-story__phrases {
+      display: none;
+    }
+
+    .book-view[data-story-enabled='false']
+      .album-story__phrase:is(.album-story__phrase--three, .album-story__phrase--four) {
+      display: none;
+    }
+
+    .dashboard__view-toggle {
+      max-width: 100%;
+    }
+
+    .view-btn {
+      min-width: 0;
+      padding-inline: 0.9rem;
+    }
+
+    .album-stage {
+      width: min(100%, 44rem);
+    }
+
+    .album-object {
+      --date-card-title-size: clamp(0.75rem, 2.5vw, 1rem);
+      --date-card-number-size: clamp(0.54rem, 1.7vw, 0.64rem);
+      --date-card-badge-size: clamp(0.54rem, 1.65vw, 0.62rem);
+    }
+
+    .album-spread {
+      grid-template-columns: var(--album-mobile-gutter) minmax(0, 1fr);
+      min-height: clamp(23.5rem, 92vw, 38rem);
+      min-height: clamp(23.5rem, min(92vw, calc(100dvh - 10.5rem)), 38rem);
+    }
+
+    .album-page-stack--left {
+      right: 0.14rem;
+      left: calc(var(--album-mobile-gutter) + 0.12rem);
+      transform: rotateZ(0.08deg);
+    }
+
+    .album-page-stack--right,
+    .album-leaf--right {
+      display: none;
+    }
+
+    .album-leaf--left {
+      grid-column: 2;
+      border-radius: 0.05rem 0.4rem 0.45rem 0.12rem;
+      box-shadow:
+        inset 1.2rem 0 1.5rem -1.15rem rgba(42, 24, 14, 0.72),
+        inset -0.15rem 0 0.5rem rgba(255, 255, 255, 0.24),
+        0 0.1rem 0.18rem rgba(40, 23, 13, 0.25);
+    }
+
+    .album-leaf--left .album-leaf__holes {
+      right: auto;
+      left: -0.38rem;
+    }
+
+    #album-motion-host :global(.album-turn__holes),
+    #album-motion-host :global(.album-turn--prev .album-turn__holes) {
+      right: auto;
+      left: -0.38rem;
+    }
+
+    .album-leaf--left :global(.album-leaf__folio) {
+      order: initial;
+    }
+
+    .album-leaf--left :global(.album-leaf__annotation) {
+      order: initial;
+      text-align: left;
+    }
+
+    .album-trough {
+      grid-column: 1;
+    }
+
+    .album-rings {
+      left: calc(var(--album-mobile-gutter) / 2);
+      width: clamp(2.2rem, 11vw, 3rem);
+    }
+
+    .album-paper-block {
+      left: calc(1.35rem + var(--album-mobile-gutter));
+    }
+
+    .album-paper-block__outside--left {
+      display: none;
+    }
+
+    #album-motion-host :global(.album-turn--next),
+    #album-motion-host :global(.album-turn--prev) {
+      right: 0;
+      left: var(--album-mobile-gutter);
+      transform-origin: left center;
+    }
+
+    #album-motion-host :global(.album-turn--prev.is-turning) {
+      animation-name: album-mobile-turn-prev;
+    }
+
+    @keyframes album-mobile-turn-prev {
+      0% {
+        transform: rotateY(-180deg) translateZ(0);
+      }
+      42% {
+        transform: rotateY(-110deg) translateZ(0.7rem);
+      }
+      72% {
+        transform: rotateY(-42deg) translateZ(0.35rem);
+      }
+      100% {
+        transform: rotateY(0deg) translateZ(0);
+      }
+    }
+
+    #album-motion-host :global(.album-turn-shadow--next),
+    #album-motion-host :global(.album-turn-shadow--prev) {
+      right: 0;
+      left: var(--album-mobile-gutter);
+      background: linear-gradient(
+        90deg,
+        rgba(38, 20, 11, 0.42),
+        rgba(38, 20, 11, 0.16) 46%,
+        transparent 94%
+      );
+      transform-origin: left center;
+    }
+  }
+
+  @media (max-width: 520px) {
+    .dashboard__masthead {
+      gap: 1.25rem;
+    }
+
+    .album-object {
+      padding: 0.72rem;
+    }
+
+    .album-cover__stitching {
+      inset: 0.48rem;
+    }
+
+    .album-paper-block {
+      inset-block: 1rem 6.8rem;
+      right: 1rem;
+      left: calc(1rem + var(--album-mobile-gutter));
+    }
+
+    .album-leaf__content,
+    #album-motion-host :global(.album-turn__face) {
+      padding: 0.9rem 0.78rem 0.75rem;
+    }
+
+    .album-object :global(.album-leaf__cards) {
+      gap: 0.68rem;
+    }
+
+    .album-controls {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .album-controls__indicator {
+      grid-column: 1 / -1;
+      grid-row: 1;
+    }
+
+    .album-controls__button {
+      grid-row: 2;
+      width: 100%;
+    }
+  }
+
+  @media (max-width: 360px) {
+    .dates-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .dashboard__hud-title {
+      font-size: 0.82rem;
+      line-height: 1.1;
+    }
+
+    .book-view[data-story-enabled='false'] .album-story__phrases {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .book-view[data-story-enabled='false'] .album-story__phrase--two {
+      display: none;
+    }
+
+    .album-object {
+      --date-card-aspect-ratio: auto;
+      --date-card-info-gap: 0.12rem;
+      --date-card-info-padding: 0.32rem 0.42rem;
+      --date-card-number-size: 0.52rem;
+      --date-card-title-size: 0.74rem;
+      --date-card-badge-size: 0.5rem;
+      --date-card-badge-padding: 0.14rem 0.28rem;
+      padding: 0.58rem;
+    }
+
+    .album-spread {
+      min-height: 22rem;
+      min-height: clamp(22rem, min(116vw, calc(100dvh - 10rem)), 31rem);
+    }
+
+    .album-leaf__content,
+    #album-motion-host :global(.album-turn__face) {
+      gap: 0.48rem;
+      padding: 0.72rem 0.58rem 0.62rem;
+    }
+
+    .album-object :global(.album-leaf__header) {
+      gap: 0.35rem;
+      padding-bottom: 0.35rem;
+      font-size: 0.43rem;
+      letter-spacing: 0.08em;
+    }
+
+    .album-object :global(.album-leaf__cards) {
+      grid-template-columns: minmax(0, 1fr);
+      align-content: start;
+      gap: 0.42rem;
+    }
+
+    .album-object :global(.album-leaf__cards .date-card) {
+      display: grid;
+      grid-template-columns: 3.05rem minmax(0, 1fr);
+      min-height: 3.65rem;
+      transform: none;
+    }
+
+    .album-object :global(.album-leaf__cards .date-card)::before,
+    .album-object :global(.album-leaf__cards .date-card)::after {
+      display: none;
+    }
+
+    .album-object :global(.date-card__media) {
+      grid-column: 1;
+      min-height: 0;
+      margin: 0.22rem;
+      border: 0;
+    }
+
+    .album-object :global(.date-card__info) {
+      grid-column: 2;
+      justify-content: center;
+      border-top: 0;
+      border-left: 1px solid rgba(91, 61, 38, 0.24);
+    }
+
+    .album-object :global(.date-card__icon) {
+      width: 1.85rem;
+    }
+
+    .album-object :global(.date-card__title) {
+      -webkit-line-clamp: 2;
+    }
+
+    .album-object :global(.album-leaf__footer) {
+      font-size: 0.46rem;
+    }
+
+    .album-object :global(.album-leaf__annotation) {
+      font-size: 0.52rem;
+    }
+
+    .album-leaf__holes,
+    #album-motion-host :global(.album-turn__holes),
+    .album-rings {
+      top: 2.85rem;
+      bottom: 2rem;
+    }
+
+    .album-controls {
+      padding: 0.42rem;
+    }
+
+    .album-controls__button {
+      padding-inline: 0.4rem;
+      font-size: 0.74rem;
+    }
+
+    .dashboard__view-toggle {
+      width: 100%;
+    }
+
+    .view-btn {
+      flex: 1;
+    }
+  }
+
+  @media (max-height: 34rem) {
+    .album-story__scene {
+      padding-block: 0.2rem;
+    }
+
+    .album-stage {
+      width: min(100%, 175dvh);
+      padding: 0.2rem;
+    }
+
+    .album-object {
+      padding: 0.58rem;
+    }
+
+    .album-spread {
+      min-height: max(14rem, calc(100dvh - 4.4rem));
+    }
+
+    .album-controls {
+      margin-top: 0.3rem;
+      padding-block: 0.24rem;
+    }
+
+    .album-controls__button {
+      min-height: 2.25rem;
+      padding-block: 0.34rem;
+    }
+
+    .album-story__rail {
+      transform: translateY(-50%) scale(0.86);
+      transform-origin: right center;
+    }
+
+    .album-story__annotation {
+      font-size: 0.66rem;
+    }
+  }
+
+  @media (max-width: 1180px) and (max-height: 34rem) {
+    .album-story__scene {
+      padding: 4.35rem 3.8rem 0.2rem 0.2rem;
+    }
+
+    .album-stage {
+      width: min(100%, 162dvh);
+    }
+
+    .album-spread {
+      min-height: max(13rem, calc(100dvh - 8rem));
+    }
+
+    .album-story__annotation {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .album-story {
+      height: auto !important;
+      min-height: 0 !important;
+    }
+
+    .album-story__scene {
+      position: relative;
+      height: auto;
+      min-height: 0;
+      overflow: visible;
+      padding: clamp(0.5rem, 2vw, 1.25rem) 0 2rem;
+    }
+
+    .dashboard__summary.is-album-hud.is-static-hud {
+      grid-template-columns: minmax(0, 1fr);
+      opacity: 1;
+      transform: none;
+    }
+
+    .dashboard__summary.is-album-hud.is-static-hud .dashboard__summary-progress {
+      padding-top: 0.58rem;
+      padding-left: 0;
+      border-top: 1px solid rgba(232, 220, 200, 0.18);
+      border-left: 0;
+    }
+
+    .dashboard__summary,
+    .album-object {
+      transition: none;
+    }
+
+    .book-view[data-story-enabled='false'] .album-story__phrases {
+      display: grid;
+    }
+
+    .book-view[data-story-enabled='false'] .album-story__phrase {
+      opacity: 1;
+      transform: none;
+    }
+
+    .grid-archive {
+      background-position: center;
+    }
+
+    .grid-archive::before {
+      transform: none;
+    }
+
+    .grid-archive.is-grid-enhanced
+      .dates-grid
+      > :global(.is-grid-batch-revealed) {
+      opacity: 1;
+      translate: 0 0;
+      animation: none;
+    }
+
+    .grid-feed__loader {
+      animation: none;
+    }
+
+    .album-story__rail,
+    .album-story__annotation,
+    .album-story__final-note,
+    .album-object::after {
+      display: none;
+    }
+
+    .album-object {
+      transform: rotateX(1.15deg) !important;
+      will-change: auto;
+    }
+
+    .album-stage__cast-shadow {
+      opacity: 0.72;
+      filter: blur(15px);
+      transform: translateY(28%) scaleX(0.96);
+    }
+
+    .album-leaf,
+    #album-motion-host :global(.album-turn__face) {
+      filter: none;
+    }
+
+    .album-controls,
+    .album-object :global(.album-leaf__folio) {
+      opacity: 1;
+      transform: none;
+    }
+
+    #album-motion-host {
+      display: none;
+    }
+  }
+
+  @media (forced-colors: active) {
+    .album-object,
+    .album-leaf,
+    #album-motion-host :global(.album-turn__face),
+    .album-controls,
+    .album-controls__button {
+      color: CanvasText;
+      background: Canvas;
+      border-color: CanvasText;
+      box-shadow: none;
+    }
+
+    .album-ring,
+    .album-leaf__holes span {
+      background: Canvas;
+      border: 2px solid CanvasText;
+      box-shadow: none;
+    }
+
+    .album-controls__button:disabled,
+    .album-controls__button[aria-disabled='true'] {
+      color: GrayText;
+      border-color: GrayText;
+      opacity: 1;
     }
   }
 </style>

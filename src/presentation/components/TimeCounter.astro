@@ -6,30 +6,42 @@ export interface Props {
 const { togetherSince } = Astro.props;
 ---
 
-<div id="time-counter" class="time-counter" data-since={togetherSince}>
+<div
+  id="time-counter"
+  class="time-counter"
+  data-since={togetherSince}
+  role="group"
+  aria-label="Tiempo que llevamos juntos"
+>
   <div class="time-unit">
     <span class="time-value" id="time-years">0</span>
-    <span class="time-label">A</span>
+    <span class="time-label" aria-hidden="true">A</span>
+    <span class="visually-hidden"> años</span>
   </div>
   <div class="time-unit">
     <span class="time-value" id="time-months">0</span>
-    <span class="time-label">M</span>
+    <span class="time-label" aria-hidden="true">M</span>
+    <span class="visually-hidden"> meses</span>
   </div>
   <div class="time-unit">
     <span class="time-value" id="time-days">0</span>
-    <span class="time-label">D</span>
+    <span class="time-label" aria-hidden="true">D</span>
+    <span class="visually-hidden"> días</span>
   </div>
   <div class="time-unit">
     <span class="time-value" id="time-hours">0</span>
-    <span class="time-label">H</span>
+    <span class="time-label" aria-hidden="true">H</span>
+    <span class="visually-hidden"> horas</span>
   </div>
   <div class="time-unit">
     <span class="time-value" id="time-minutes">0</span>
-    <span class="time-label">M</span>
+    <span class="time-label" aria-hidden="true">M</span>
+    <span class="visually-hidden"> minutos</span>
   </div>
   <div class="time-unit">
     <span class="time-value" id="time-seconds">0</span>
-    <span class="time-label">S</span>
+    <span class="time-label" aria-hidden="true">S</span>
+    <span class="visually-hidden"> segundos</span>
   </div>
 </div>
 
@@ -45,15 +57,27 @@ const { togetherSince } = Astro.props;
     let minutes = now.getUTCMinutes() - start.getUTCMinutes();
     let seconds = now.getUTCSeconds() - start.getUTCSeconds();
 
-    if (seconds < 0) { seconds += 60; minutes--; }
-    if (minutes < 0) { minutes += 60; hours--; }
-    if (hours < 0) { hours += 24; days--; }
+    if (seconds < 0) {
+      seconds += 60;
+      minutes--;
+    }
+    if (minutes < 0) {
+      minutes += 60;
+      hours--;
+    }
+    if (hours < 0) {
+      hours += 24;
+      days--;
+    }
     if (days < 0) {
       const prevMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 0));
       days += prevMonth.getUTCDate();
       months--;
     }
-    if (months < 0) { months += 12; years--; }
+    if (months < 0) {
+      months += 12;
+      years--;
+    }
     if (years < 0) return { years: 0, months: 0, days: 0, hours: 0, minutes: 0, seconds: 0 };
 
     return { years, months, days, hours, minutes, seconds };
@@ -86,32 +110,50 @@ const { togetherSince } = Astro.props;
 
 <style>
   .time-counter {
-    display: flex;
-    justify-content: center;
-    gap: 1rem;
-    margin-bottom: 2rem;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: var(--time-counter-gap, clamp(0.25rem, 1.5vw, 1rem));
+    width: 100%;
+    transition: gap 240ms ease;
   }
 
   .time-unit {
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-width: 3rem;
+    min-width: 0;
   }
 
   .time-value {
-    font-size: 1.8rem;
+    font-family: var(--font-family-display, Georgia, serif);
+    font-size: var(--time-counter-value-size, clamp(1.45rem, 4vw, 2.25rem));
     font-weight: 700;
-    color: var(--color-primary, #8B6F47);
-    line-height: 1.1;
+    color: var(--color-accent-light, #e8dcc8);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    transition: font-size 240ms ease;
   }
 
   .time-label {
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: var(--color-text-muted, #8B7D6B);
+    margin-top: var(--time-counter-label-margin, 0.35rem);
+    font-size: var(--time-counter-label-size, 0.7rem);
+    font-weight: 700;
+    color: var(--color-accent, #c4a882);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: var(--time-counter-label-spacing, 0.12em);
+    transition:
+      margin 240ms ease,
+      font-size 240ms ease,
+      letter-spacing 240ms ease;
+  }
+
+  @media (max-width: 400px) {
+    .time-counter {
+      gap: 0.2rem;
+    }
+
+    .time-value {
+      font-size: var(--time-counter-value-size, 1.35rem);
+    }
   }
 </style>

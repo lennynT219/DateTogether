@@ -9,90 +9,205 @@ const togetherSince = import.meta.env.TOGETHER_SINCE || '2024-01-01T00:00:00Z';
 
 <BaseLayout>
   <main class="login-page">
-    <!-- Decorative shapes over the background -->
-    <div class="bg-pattern">
-      <div class="bg-shape bg-shape--1"></div>
-      <div class="bg-shape bg-shape--2"></div>
-      <div class="bg-shape bg-shape--3"></div>
-    </div>
-
-    <div class="login-card">
+    <section class="login-card" aria-labelledby="login-title">
       <div class="login-card__inner">
-        <h1>Tiempo juntos</h1>
-        <TimeCounter togetherSince={togetherSince} client:load />
+        <header class="login-card__header">
+          <p class="login-card__eyebrow">Archivo de recuerdos</p>
+          <h1 id="login-title">Acceso al álbum</h1>
+          <p class="login-card__intro">Ingresa tus datos para continuar.</p>
+        </header>
 
-        <form id="login-form" class="login-form">
+        <div class="login-card__time">
+          <p>Tiempo compartido</p>
+          <TimeCounter togetherSince={togetherSince} client:load />
+        </div>
+
+        <form id="login-form" class="login-form" aria-busy="false">
           <div class="form-group">
             <label for="username">Usuario</label>
             <input
               type="text"
               id="username"
               name="username"
-              placeholder="Tu nombre de usuario"
+              placeholder="Nombre de usuario"
               autocomplete="username"
               required
             />
+            <p id="username-error" class="field-error" aria-live="polite" aria-atomic="true" hidden></p>
           </div>
 
           <div class="form-group">
             <label for="password">Contraseña</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              placeholder="Tu contraseña"
-              autocomplete="current-password"
-              required
-            />
+            <div class="password-field">
+              <input
+                type="password"
+                id="password"
+                name="password"
+                placeholder="Contraseña"
+                autocomplete="current-password"
+                required
+              />
+              <button
+                id="password-toggle"
+                class="password-toggle"
+                type="button"
+                aria-controls="password"
+                aria-label="Mostrar contraseña"
+                aria-pressed="false"
+              >
+                Mostrar
+              </button>
+            </div>
+            <p id="password-error" class="field-error" aria-live="polite" aria-atomic="true" hidden></p>
           </div>
 
-          <div id="login-error" class="login-error" style="display: none;"></div>
+          <div
+            id="login-error"
+            class="login-error"
+            role="alert"
+            aria-live="assertive"
+            aria-atomic="true"
+            hidden
+          ></div>
+          <p id="login-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
 
-          <button type="submit" class="login-button">
-            Ingresar
-          </button>
+          <button type="submit" class="login-button">Ingresar</button>
         </form>
       </div>
-    </div>
+    </section>
   </main>
 </BaseLayout>
 
 <script>
-  const form = document.getElementById('login-form') as HTMLFormElement;
-  const errorEl = document.getElementById('login-error') as HTMLDivElement;
+  const form = document.getElementById('login-form') as HTMLFormElement | null;
+  const usernameInput = document.getElementById('username') as HTMLInputElement | null;
+  const passwordInput = document.getElementById('password') as HTMLInputElement | null;
+  const passwordToggle = document.getElementById('password-toggle') as HTMLButtonElement | null;
+  const submitButton = form?.querySelector<HTMLButtonElement>('.login-button') ?? null;
+  const errorEl = document.getElementById('login-error') as HTMLDivElement | null;
+  const statusEl = document.getElementById('login-status') as HTMLParagraphElement | null;
 
-  form?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    errorEl.style.display = 'none';
+  if (form && usernameInput && passwordInput && passwordToggle && submitButton && errorEl && statusEl) {
+    const fields = [usernameInput, passwordInput];
+    let isSubmitting = false;
 
-    const username = (document.getElementById('username') as HTMLInputElement).value;
-    const password = (document.getElementById('password') as HTMLInputElement).value;
+    const clearLoginError = () => {
+      errorEl.hidden = true;
+      errorEl.textContent = '';
+      form.removeAttribute('aria-describedby');
+    };
 
-    try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      });
+    const showLoginError = (message: string) => {
+      errorEl.textContent = message;
+      errorEl.hidden = false;
+      form.setAttribute('aria-describedby', errorEl.id);
+    };
 
-      if (response.ok) {
-        window.location.href = '/';
-      } else {
-        const data = await response.json();
-        errorEl.textContent = data.error || 'Error al iniciar sesión';
-        errorEl.style.display = 'block';
+    const clearFieldError = (input: HTMLInputElement) => {
+      const fieldError = document.getElementById(`${input.id}-error`) as HTMLParagraphElement | null;
+
+      if (fieldError) {
+        fieldError.hidden = true;
+        fieldError.textContent = '';
       }
-    } catch {
-      errorEl.textContent = 'Error de conexión';
-      errorEl.style.display = 'block';
-    }
-  });
+
+      input.removeAttribute('aria-invalid');
+      input.removeAttribute('aria-describedby');
+    };
+
+    const showFieldError = (input: HTMLInputElement) => {
+      const fieldError = document.getElementById(`${input.id}-error`) as HTMLParagraphElement | null;
+
+      if (!fieldError) return;
+
+      fieldError.textContent = input.id === 'username'
+        ? 'Ingresa el nombre de usuario.'
+        : 'Ingresa la contraseña.';
+      fieldError.hidden = false;
+      input.setAttribute('aria-invalid', 'true');
+      input.setAttribute('aria-describedby', fieldError.id);
+    };
+
+    const setSubmitting = (submitting: boolean) => {
+      isSubmitting = submitting;
+      form.setAttribute('aria-busy', String(submitting));
+      submitButton.disabled = submitting;
+      submitButton.textContent = submitting ? 'Ingresando…' : 'Ingresar';
+      statusEl.textContent = submitting ? 'Ingresando…' : '';
+    };
+
+    passwordToggle.addEventListener('click', () => {
+      const showPassword = passwordInput.type === 'password';
+
+      passwordInput.type = showPassword ? 'text' : 'password';
+      passwordToggle.setAttribute(
+        'aria-label',
+        showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña',
+      );
+      passwordToggle.setAttribute('aria-pressed', String(showPassword));
+      passwordToggle.textContent = showPassword ? 'Ocultar' : 'Mostrar';
+    });
+
+    form.addEventListener('invalid', (event) => {
+      const input = event.target;
+
+      if (input instanceof HTMLInputElement) {
+        showFieldError(input);
+      }
+    }, true);
+
+    fields.forEach((input) => {
+      input.addEventListener('input', () => {
+        clearLoginError();
+
+        if (input.validity.valid) {
+          clearFieldError(input);
+        }
+      });
+    });
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      if (isSubmitting) return;
+
+      clearLoginError();
+      fields.forEach(clearFieldError);
+      setSubmitting(true);
+
+      let redirecting = false;
+
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: usernameInput.value, password: passwordInput.value }),
+        });
+
+        if (response.ok) {
+          redirecting = true;
+          window.location.href = '/';
+          return;
+        }
+
+        const data = await response.json();
+        showLoginError(data.error || 'Error al iniciar sesión');
+      } catch {
+        showLoginError('Error de conexión');
+      } finally {
+        if (!redirecting) {
+          setSubmitting(false);
+        }
+      }
+    });
+  }
 </script>
 
 <style>
   /* ===== Background with couple photo ===== */
   .login-page {
     min-height: 100vh;
+    min-height: 100svh;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -115,103 +230,133 @@ const togetherSince = import.meta.env.TOGETHER_SINCE || '2024-01-01T00:00:00Z';
     pointer-events: none;
   }
 
-  /* ===== Decorative geometric pattern (visible through glass) ===== */
-  .bg-pattern {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .bg-shape {
-    position: absolute;
-    border-radius: 50%;
-    opacity: 0.12;
-  }
-
-  .bg-shape--1 {
-    width: 500px;
-    height: 500px;
-    background: var(--color-accent, #C4A882);
-    top: -150px;
-    right: -100px;
-  }
-
-  .bg-shape--2 {
-    width: 300px;
-    height: 300px;
-    background: var(--color-accent-light, #E8DCC8);
-    bottom: -80px;
-    left: -60px;
-  }
-
-  .bg-shape--3 {
-    width: 200px;
-    height: 200px;
-    background: var(--color-primary, #8B6F47);
-    top: 40%;
-    left: 10%;
-    opacity: 0.08;
-  }
-
-  /* ===== Apple Liquid Glass card ===== */
   .login-card {
     position: relative;
     z-index: 1;
-    width: 100%;
-    max-width: 420px;
-    /* Core: very translucent + softer blur + heavy saturation = the Apple look */
-    background: rgba(255, 255, 255, 0.25);
-    backdrop-filter: blur(28px) saturate(180%);
-    -webkit-backdrop-filter: blur(28px) saturate(180%);
-    border-radius: 28px;
-    /* Very subtle border — the white ring is the inset shadow, not the border */
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    /* The "Apple ring" — inner highlight + soft drop */
+    width: min(100%, 29rem);
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse at 16% 0%, rgba(255, 255, 255, 0.42), transparent 42%),
+      linear-gradient(128deg, rgba(255, 253, 246, 0.6), rgba(234, 219, 197, 0.5) 52%, rgba(208, 186, 158, 0.4)),
+      rgba(233, 220, 201, 0.42);
+    border: 1px solid rgba(107, 79, 46, 0.52);
+    border-radius: 0.9rem;
     box-shadow:
-      inset 0 0 0 0.5px rgba(255, 255, 255, 0.5),
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.4),
-      inset 0 -1px 0 0 rgba(0, 0, 0, 0.04),
-      0 20px 60px rgba(62, 42, 30, 0.25),
-      0 4px 16px rgba(62, 42, 30, 0.1);
+      inset 0 1px 0 rgba(255, 255, 255, 0.58),
+      inset 0 0 0 0.32rem rgba(255, 252, 245, 0.1),
+      inset 0 0 0 0.4rem rgba(107, 79, 46, 0.07),
+      0 22px 52px rgba(8, 5, 3, 0.36),
+      0 2px 6px rgba(62, 42, 30, 0.16);
+    transition: border-color 160ms ease, box-shadow 160ms ease;
   }
 
-  /* Iridescent sheen — diagonal light catch, very subtle */
   .login-card::before {
     content: '';
     position: absolute;
     inset: 0;
-    border-radius: 28px;
-    background: linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.35) 0%,
-      rgba(255, 255, 255, 0.05) 25%,
-      transparent 50%,
-      rgba(196, 168, 130, 0.06) 75%,
-      rgba(255, 255, 255, 0.2) 100%
-    );
     pointer-events: none;
-    z-index: 0;
-    mix-blend-mode: overlay;
+    opacity: 0.1;
+    background-image: radial-gradient(rgba(62, 42, 30, 0.18) 0.45px, transparent 0.7px);
+    background-size: 5px 5px;
+  }
+
+  .login-card::after {
+    content: '';
+    position: absolute;
+    inset: 1px;
+    pointer-events: none;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: calc(0.9rem - 1px);
+    background:
+      radial-gradient(ellipse at 18% 0%, rgba(255, 255, 255, 0.34), transparent 36%),
+      linear-gradient(118deg, rgba(255, 255, 255, 0.2), transparent 22%, transparent 65%, rgba(255, 248, 235, 0.1));
+    opacity: 0.32;
+    transition: opacity 160ms ease;
+  }
+
+  .login-card:hover,
+  .login-card:focus-within {
+    border-color: rgba(255, 250, 239, 0.78);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.66),
+      inset 0 0 0 0.32rem rgba(255, 252, 245, 0.12),
+      inset 0 0 0 0.4rem rgba(107, 79, 46, 0.08),
+      0 24px 56px rgba(8, 5, 3, 0.4),
+      0 2px 6px rgba(62, 42, 30, 0.18);
+  }
+
+  .login-card:hover::after,
+  .login-card:focus-within::after {
+    opacity: 0.44;
+  }
+
+  @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+    .login-card {
+      background:
+        radial-gradient(ellipse at 16% 0%, rgba(255, 255, 255, 0.38), transparent 42%),
+        linear-gradient(128deg, rgba(255, 253, 246, 0.42), rgba(232, 213, 185, 0.3) 52%, rgba(123, 87, 57, 0.22)),
+        rgba(226, 207, 180, 0.26);
+      -webkit-backdrop-filter: blur(18px) saturate(128%) brightness(1.05);
+      backdrop-filter: blur(18px) saturate(128%) brightness(1.05);
+    }
   }
 
   .login-card__inner {
     position: relative;
     z-index: 1;
-    padding: 2.5rem 2rem;
+    padding: clamp(1.5rem, 5vw, 2.75rem);
+  }
+
+  .login-card__header {
     text-align: center;
   }
 
-  .login-card h1 {
-    font-size: 1.6rem;
-    font-weight: 600;
-    color: #FFFFFF;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-    margin-bottom: 0.25rem;
-    letter-spacing: -0.01em;
+  .login-card__eyebrow,
+  .login-card__time > p {
+    margin: 0;
+    color: #6b4f2e;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
   }
 
-  /* ===== Form ===== */
+  .login-card h1 {
+    margin: 0.4rem 0 0;
+    color: #3e2a1e;
+    font-family: var(--font-family-display, Georgia, serif);
+    font-size: clamp(2rem, 7vw, 2.55rem);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1.05;
+  }
+
+  .login-card__intro {
+    margin: 0.75rem 0 0;
+    color: #6a5847;
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+
+  .login-card__time {
+    --color-accent: #6b4f2e;
+    --color-accent-light: #4a261c;
+    --time-counter-gap: clamp(0.25rem, 1.2vw, 0.55rem);
+    --time-counter-value-size: clamp(1rem, 3.2vw, 1.4rem);
+    --time-counter-label-size: 0.56rem;
+    --time-counter-label-margin: 0.25rem;
+    --time-counter-label-spacing: 0.08em;
+    margin: 1.6rem 0;
+    padding: 0.9rem 0;
+    border-top: 1px solid rgba(139, 111, 71, 0.35);
+    border-bottom: 1px solid rgba(139, 111, 71, 0.35);
+    text-align: center;
+  }
+
+  .login-card__time > p {
+    margin-bottom: 0.7rem;
+  }
+
   .login-form {
     display: flex;
     flex-direction: column;
@@ -225,71 +370,210 @@ const togetherSince = import.meta.env.TOGETHER_SINCE || '2024-01-01T00:00:00Z';
 
   .form-group label {
     display: block;
-    margin-bottom: 0.35rem;
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: var(--color-text-muted, #8B7D6B);
+    margin-bottom: 0.4rem;
+    color: #4a261c;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
   }
 
   .form-group input {
     width: 100%;
-    padding: 0.8rem 1rem;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    border-radius: 12px;
-    font-size: 0.95rem;
-    background: rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    color: var(--color-text, #3E2A1E);
-    transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
+    min-height: 3rem;
     box-sizing: border-box;
+    padding: 0.7rem 0.9rem;
+    appearance: none;
+    border: 1px solid rgba(130, 96, 58, 0.74);
+    border-radius: 0.4rem;
+    background:
+      linear-gradient(120deg, rgba(255, 254, 249, 0.96), rgba(246, 235, 216, 0.9)),
+      #fffaf0;
+    color: #3e2a1e;
+    font: inherit;
+    font-size: 1rem;
+    line-height: 1.35;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78), inset 0 -1px 0 rgba(74, 38, 28, 0.05);
+    transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
   }
 
   .form-group input::placeholder {
-    color: var(--color-text-muted, #8B7D6B);
-    opacity: 0.5;
+    color: #786957;
+    opacity: 1;
   }
 
-  .form-group input:focus {
-    outline: none;
-    border-color: rgba(255, 255, 255, 0.5);
-    background: rgba(255, 255, 255, 0.4);
-    box-shadow:
-      inset 0 0 0 0.5px rgba(255, 255, 255, 0.6),
-      0 0 0 3px rgba(139, 111, 71, 0.1);
+  .form-group input:focus-visible {
+    outline: 3px solid #f5d6a0;
+    outline-offset: 2px;
+    border-color: #4a261c;
+    background: #fffdf6;
+    box-shadow: 0 0 0 1px #4a261c, inset 0 1px 0 rgba(255, 255, 255, 0.9);
   }
 
-  /* ===== Error ===== */
-  .login-error {
-    background: var(--color-error-bg, #FDF0ED);
-    color: var(--color-error, #C0392B);
-    padding: 0.7rem 1rem;
-    border-radius: 10px;
-    font-size: 0.85rem;
-    font-weight: 500;
-    border: 1px solid rgba(192, 57, 43, 0.15);
+  .form-group input[aria-invalid='true'] {
+    border-color: #9b3328;
   }
 
-  /* ===== Button ===== */
-  .login-button {
-    background: var(--color-primary, #8B6F47);
-    color: #fff;
-    border: none;
-    padding: 0.85rem;
-    border-radius: 10px;
-    font-size: 1rem;
-    font-weight: 600;
+  .form-group input:-webkit-autofill,
+  .form-group input:-webkit-autofill:hover,
+  .form-group input:-webkit-autofill:focus {
+    -webkit-text-fill-color: #3e2a1e;
+    -webkit-box-shadow: 0 0 0 1000px #fffaf0 inset;
+    box-shadow: 0 0 0 1000px #fffaf0 inset;
+    caret-color: #3e2a1e;
+  }
+
+  .password-field {
+    position: relative;
+  }
+
+  .password-field input {
+    padding-right: 5.25rem;
+  }
+
+  .password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 0.2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 4.5rem;
+    min-height: 2.75rem;
+    padding: 0.35rem 0.5rem;
+    transform: translateY(-50%);
+    border: 0;
+    border-radius: 0.3rem;
+    background: transparent;
+    color: #6b4f2e;
     cursor: pointer;
-    transition: background 0.2s, transform 0.1s;
-    letter-spacing: 0.02em;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
   }
 
-  .login-button:hover {
-    background: var(--color-primary-dark, #6B4F2E);
+  .password-toggle:hover {
+    background: rgba(139, 111, 71, 0.12);
+  }
+
+  .password-toggle:focus-visible,
+  .login-button:focus-visible {
+    outline: 3px solid #f5d6a0;
+    outline-offset: 2px;
+  }
+
+  .field-error {
+    margin: 0.45rem 0 0;
+    color: #8f2e25;
+    font-size: 0.82rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  .login-error {
+    padding: 0.75rem 0.85rem;
+    border: 1px solid rgba(143, 46, 37, 0.36);
+    border-left: 0.25rem solid #9b3328;
+    border-radius: 0.35rem;
+    background: #fdf0ed;
+    color: #7a251e;
+    font-size: 0.88rem;
+    font-weight: 600;
+    line-height: 1.45;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .login-button {
+    min-height: 3rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid #4a261c;
+    border-radius: 0.4rem;
+    background: linear-gradient(135deg, #795936, #5b3523);
+    color: #fffdf6;
+    cursor: pointer;
+    font: inherit;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    box-shadow: inset 0 1px 0 rgba(255, 245, 224, 0.3), inset 0 -1px 0 rgba(47, 24, 16, 0.28), 0 2px 5px rgba(62, 42, 30, 0.18);
+    transition: background-color 160ms ease, box-shadow 160ms ease, transform 160ms ease, opacity 160ms ease;
+  }
+
+  .login-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #85613b, #4a261c);
+    box-shadow: inset 0 1px 0 rgba(255, 245, 224, 0.42), inset 0 -1px 0 rgba(47, 24, 16, 0.28), 0 3px 7px rgba(62, 42, 30, 0.24);
     transform: translateY(-1px);
   }
 
-  .login-button:active {
+  .login-button:active:not(:disabled) {
     transform: translateY(0);
+  }
+
+  .login-button:disabled {
+    cursor: wait;
+    opacity: 0.72;
+  }
+
+  @media (max-width: 480px) {
+    .login-page {
+      align-items: flex-start;
+      padding: 0.75rem;
+    }
+
+    .login-card {
+      margin: 0.75rem 0;
+    }
+
+    .login-card__inner {
+      padding: 1.4rem;
+    }
+
+    .login-card__time {
+      margin: 1.35rem 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .login-card,
+    .form-group input,
+    .password-toggle,
+    .login-button,
+    .login-card::after {
+      transition: none;
+    }
+
+    .login-card:hover::after,
+    .login-card:focus-within::after {
+      opacity: 0.32;
+    }
+
+    .login-button:hover:not(:disabled),
+    .login-button:active:not(:disabled) {
+      transform: none;
+    }
+  }
+
+  @media (forced-colors: active) {
+    .login-card,
+    .form-group input,
+    .login-error,
+    .login-button {
+      forced-color-adjust: auto;
+    }
+
+    .login-card::before,
+    .login-card::after {
+      display: none;
+    }
   }
 </style>

@@ -1,15 +1,23 @@
 // Color tokens — Coffee & Beige palette
-$color-primary: #8B6F47;
-$color-primary-dark: #6B4F2E;
-$color-accent: #C4A882;
-$color-accent-light: #E8DCC8;
-$color-background: #F5F0E6;
-$color-surface: #FFFFFF;
-$color-text: #3E2A1E;
-$color-text-muted: #8B7D6B;
-$color-border: #D4C5B2;
-$color-error: #C0392B;
-$color-error-bg: #FDF0ED;
+$color-primary: #8b6f47;
+$color-primary-dark: #6b4f2e;
+$color-accent: #c4a882;
+$color-accent-light: #e8dcc8;
+$color-background: #f5f0e6;
+$color-surface: #ffffff;
+$color-text: #3e2a1e;
+$color-text-muted: #8b7d6b;
+$color-border: #d4c5b2;
+$color-error: #c0392b;
+$color-error-bg: #fdf0ed;
+$color-canvas: #1a1410;
+$color-canvas-raised: #241a14;
+$color-leather: #3e2a1e;
+$color-paper: #f5f0e6;
+$color-paper-aged: #e8dcc8;
+$color-ink-soft: #6a5847;
+$color-focus: #f5d6a0;
+$color-focus-contrast: #4a261c;
 
 // Spacing scale
 $space-xs: 0.25rem;
@@ -19,12 +27,16 @@ $space-lg: 1.5rem;
 $space-xl: 2rem;
 $space-2xl: 3rem;
 
-// Font
+// Typography
 $font-family-sans:
-  'Inter',
+  'Avenir Next',
+  Avenir,
+  'Segoe UI',
   system-ui,
   -apple-system,
   sans-serif;
+$font-family-display:
+  'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Palatino, Georgia, serif;
 $font-size-base: 1rem;
 $font-size-lg: 1.125rem;
 $font-size-xl: 1.25rem;
@@ -36,3 +48,7 @@ $radius-sm: 0.25rem;
 $radius-md: 0.5rem;
 $radius-lg: 0.75rem;
 $radius-xl: 1rem;
+
+// Tactile surfaces
+$shadow-paper: 0 18px 45px rgba(8, 5, 3, 0.24);
+$shadow-card: 0 8px 24px rgba(8, 5, 3, 0.2);

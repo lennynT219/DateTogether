@@ -4,41 +4,108 @@ export interface Props {
   total: number;
 }
 const { completed, total } = Astro.props;
-const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+const safeTotal = Math.max(0, total);
+const safeCompleted = Math.min(Math.max(0, completed), safeTotal);
+const percentage = safeTotal > 0 ? Math.round((safeCompleted / safeTotal) * 100) : 0;
+const progressText =
+  safeTotal > 0
+    ? `${safeCompleted} de ${safeTotal} citas completadas, ${percentage} %`
+    : 'Aún no hay citas disponibles';
 ---
 
 <div class="progress-bar">
-  <div class="progress-bar__track">
+  <div class="progress-bar__header">
+    <div>
+      <p class="progress-bar__eyebrow">Progreso del álbum</p>
+      <p class="progress-bar__label">{safeCompleted} de {safeTotal} citas</p>
+    </div>
+    <span class="progress-bar__percentage">{percentage}%</span>
+  </div>
+  <div
+    class="progress-bar__track"
+    role="progressbar"
+    aria-label="Citas completadas"
+    aria-valuemin="0"
+    aria-valuemax="100"
+    aria-valuenow={percentage}
+    aria-valuetext={progressText}
+  >
     <div class="progress-bar__fill" style={`width: ${percentage}%`}></div>
   </div>
-  <span class="progress-bar__label">{completed} / {total}</span>
+  <p class="progress-bar__detail">
+    {safeTotal > 0 ? `${safeTotal - safeCompleted} recuerdos por completar` : progressText}
+  </p>
 </div>
 
 <style>
   .progress-bar {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
     width: 100%;
-    max-width: 400px;
+    min-width: 0;
   }
+
+  .progress-bar__header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--progress-header-gap, 1rem);
+    margin-bottom: var(--progress-header-margin, 0.75rem);
+    transition:
+      gap 240ms ease,
+      margin 240ms ease;
+  }
+
+  .progress-bar__eyebrow {
+    color: var(--color-accent, #c4a882);
+    font-size: var(--progress-eyebrow-size, 0.7rem);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    transition: font-size 240ms ease;
+  }
+
+  .progress-bar__label {
+    color: var(--color-accent-light, #e8dcc8);
+    font-family: var(--font-family-display, Georgia, serif);
+    font-size: var(--progress-label-size, clamp(1.1rem, 3vw, 1.35rem));
+    font-weight: 700;
+    line-height: 1.2;
+    transition: font-size 240ms ease;
+  }
+
+  .progress-bar__percentage {
+    color: var(--color-accent-light, #e8dcc8);
+    font-size: var(--progress-percentage-size, 1rem);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    transition: font-size 240ms ease;
+  }
+
   .progress-bar__track {
-    flex: 1;
-    height: 12px;
-    background: rgba(232, 220, 200, 0.15);
-    border-radius: 6px;
+    width: 100%;
+    height: var(--progress-track-height, 0.75rem);
     overflow: hidden;
+    background: rgba(12, 8, 5, 0.5);
+    border: 1px solid rgba(232, 220, 200, 0.3);
+    border-radius: 999px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.45);
+    transition: height 240ms ease;
   }
+
   .progress-bar__fill {
     height: 100%;
-    background: #C4A882;
-    border-radius: 6px;
+    background: linear-gradient(90deg, #9a7049, var(--color-accent, #c4a882));
+    border-radius: inherit;
+    box-shadow: 0 0 12px rgba(196, 168, 130, 0.35);
     transition: width 1s ease-out;
   }
-  .progress-bar__label {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #E8DCC8;
-    white-space: nowrap;
+
+  .progress-bar__detail {
+    margin-top: var(--progress-detail-margin, 0.55rem);
+    color: var(--color-accent, #c4a882);
+    font-size: var(--progress-detail-size, 0.8rem);
+    transition:
+      margin 240ms ease,
+      font-size 240ms ease;
   }
 </style>

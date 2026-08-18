@@ -12,6 +12,22 @@
   --color-border: #{$color-border};
   --color-error: #{$color-error};
   --color-error-bg: #{$color-error-bg};
+  --color-canvas: #{$color-canvas};
+  --color-canvas-raised: #{$color-canvas-raised};
+  --color-leather: #{$color-leather};
+  --color-paper: #{$color-paper};
+  --color-paper-aged: #{$color-paper-aged};
+  --color-ink-soft: #{$color-ink-soft};
+  --color-focus: #{$color-focus};
+  --color-focus-contrast: #{$color-focus-contrast};
+  --font-family-sans: #{$font-family-sans};
+  --font-family-display: #{$font-family-display};
+  --radius-sm: #{$radius-sm};
+  --radius-md: #{$radius-md};
+  --radius-lg: #{$radius-lg};
+  --radius-xl: #{$radius-xl};
+  --shadow-paper: #{$shadow-paper};
+  --shadow-card: #{$shadow-card};
 }
 
 *,
@@ -36,6 +52,12 @@ body {
   min-height: 100vh;
 }
 
+:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px var(--color-focus-contrast);
+}
+
 img,
 picture,
 video,
@@ -52,6 +74,14 @@ select {
   font: inherit;
 }
 
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
 a {
   color: inherit;
   text-decoration: none;
@@ -60,4 +90,27 @@ a {
 ul,
 ol {
   list-style: none;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
